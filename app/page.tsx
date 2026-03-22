@@ -1,65 +1,127 @@
-import Image from "next/image";
+import Link from 'next/link'
 
-export default function Home() {
+const FEATURES = [
+  { icon: '📅', title: 'Shared Events',       desc: 'Plan date nights, trips, and anniversaries together. Never miss what matters.' },
+  { icon: '✅', title: 'Task Coordination',    desc: 'Assign tasks, track progress, and see each other\'s contribution.' },
+  { icon: '🎯', title: 'Shared Goals',         desc: 'Set milestones toward the life you want and celebrate every achievement.' },
+  { icon: '🔔', title: 'Smart Reminders',      desc: 'Timely notifications so nothing slips — sent to both partners.' },
+  { icon: '📊', title: 'Contribution Stats',   desc: 'See who\'s been pulling their weight. Visual breakdowns keep things balanced.' },
+  { icon: '🔒', title: 'Completely Private',   desc: 'Your workspace is yours alone. No ads, no public profiles.' },
+]
+
+export default function LandingPage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div className="min-h-screen bg-cm-pale">
+
+      {/* ── Hero ─────────────────────────────────────────── */}
+      <section
+        className="relative flex flex-col items-center justify-center min-h-screen px-6 py-24 overflow-hidden"
+        style={{ background: '#2C3E50' }}
+      >
+        {/* Decorative rings */}
+        <div className="absolute top-[-120px] right-[-160px] w-[520px] h-[520px] rounded-full border border-white/5 pointer-events-none" />
+        <div className="absolute bottom-[-60px] left-[-80px] w-[300px] h-[300px] rounded-full pointer-events-none"
+          style={{ border: '1px solid rgba(192,57,43,0.15)' }} />
+
+        {/* Logo */}
+        <div className="relative mb-8">
+          <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+            <circle cx="40" cy="40" r="38" fill="rgba(192,57,43,0.12)"
+              stroke="rgba(192,57,43,0.3)" strokeWidth="1.5" />
+            <path
+              d="M40 58C40 58 16 48 16 30C16 21.2 23.2 14 32 14C36.4 14 40.4 15.9 43 19C45.6 15.9 49.6 14 54 14C62.8 14 70 21.2 70 30C70 48 40 62 40 62Z"
+              fill="#C0392B"
+            />
+          </svg>
+        </div>
+
+        {/* Headline */}
+        <h1 className="relative font-display text-white text-center font-bold leading-tight mb-5"
+          style={{ fontSize: 'clamp(48px, 7vw, 82px)' }}>
+          <em className="text-cm not-italic">Together</em>
+        </h1>
+
+        <p className="relative text-cm/70 text-lg font-light tracking-widest uppercase mb-12">
+          Plan Together &nbsp;·&nbsp; Grow Together
+        </p>
+
+        <div className="relative flex flex-wrap gap-4 justify-center">
+          <Link
+            href="/tasks"
+            className="px-9 py-3.5 rounded-full text-white font-semibold text-sm tracking-wide transition-all hover:-translate-y-0.5"
+            style={{ background: '#C0392B', boxShadow: '0 4px 20px rgba(192,57,43,0.4)' }}
+          >
+            Open App →
+          </Link>
+          <Link
+            href="/tasks"
+            className="px-9 py-3.5 rounded-full font-medium text-sm text-cm transition-all"
+            style={{ border: '1.5px solid rgba(232,213,183,0.35)' }}
+          >
+            Sign In
+          </Link>
+        </div>
+      </section>
+
+      {/* ── Stats strip ──────────────────────────────────── */}
+      <div className="max-w-5xl mx-auto px-6 py-20 flex flex-wrap items-center gap-10 justify-center">
+        {[
+          { num: '2',  label: 'People. One Workspace.' },
+          { num: '∞',  label: 'Memories to Create' },
+          { num: '4',  label: 'Core Modules' },
+          { num: '0',  label: 'Missed Anniversaries' },
+        ].map((s, i) => (
+          <div key={i} className="text-center px-8">
+            <div className="font-display text-5xl font-bold text-cr leading-none mb-2">{s.num}</div>
+            <div className="text-sm text-sl-muted font-medium tracking-wide">{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Features ─────────────────────────────────────── */}
+      <section className="max-w-5xl mx-auto px-6 pb-24">
+        <p className="text-xs font-bold tracking-widest uppercase text-cr mb-3">What&aposs Inside</p>
+        <h2 className="font-display text-4xl font-bold text-sl mb-16 leading-snug">
+          Everything your<br />relationship needs, in one place
+        </h2>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-7">
+          {FEATURES.map((f) => (
+            <div
+              key={f.title}
+              className="bg-white rounded-2xl p-9 border border-sl/5 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md group relative overflow-hidden"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-cr scale-x-0 origin-left transition-transform group-hover:scale-x-100" />
+              <div className="w-13 h-13 rounded-lg bg-cr-pale flex items-center justify-center text-2xl mb-5"
+                style={{ width: 52, height: 52 }}>
+                {f.icon}
+              </div>
+              <h3 className="font-display text-lg font-semibold text-sl mb-2">{f.title}</h3>
+              <p className="text-sm text-sl-muted leading-relaxed">{f.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Footer ───────────────────────────────────────── */}
+      <footer
+        className="px-16 py-12 flex items-center justify-between"
+        style={{ background: '#1A2533' }}
+      >
+        <div>
+          <div className="font-display text-xl font-bold text-cm">❤️ Together</div>
+          <p className="text-xs mt-1" style={{ color: 'rgba(232,213,183,0.35)' }}>
+            A private space for couples to plan, organize, and grow.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+        <Link
+          href="/tasks"
+          className="px-8 py-3 rounded-full text-white font-semibold text-sm transition-all hover:-translate-y-0.5"
+          style={{ background: '#C0392B', boxShadow: '0 4px 16px rgba(192,57,43,0.3)' }}
+        >
+          Get Started Free →
+        </Link>
+      </footer>
     </div>
-  );
+  )
 }
