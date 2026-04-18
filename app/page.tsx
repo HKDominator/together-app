@@ -54,7 +54,7 @@ export default function LandingPage() {
             Open App →
           </Link>
           <Link
-            href="/tasks"
+            href="/login"
             className="px-9 py-3.5 rounded-full font-medium text-sm text-cm transition-all"
             style={{ border: '1.5px solid rgba(232,213,183,0.35)' }}
           >
@@ -73,7 +73,7 @@ export default function LandingPage() {
         ].map((s, i) => (
           <div key={i} className="text-center px-8">
             <div className="font-display text-5xl font-bold text-cr leading-none mb-2">{s.num}</div>
-            <div className="text-sm text-sl-muted font-medium tracking-wide">{s.label}</div>
+            <div className="text-sm text-gray-500 font-medium tracking-wide">{s.label}</div>
           </div>
         ))}
       </div>
@@ -81,7 +81,7 @@ export default function LandingPage() {
       {/* ── Features ─────────────────────────────────────── */}
       <section className="max-w-5xl mx-auto px-6 pb-24">
         <p className="text-xs font-bold tracking-widest uppercase text-cr mb-3">What&aposs Inside</p>
-        <h2 className="font-display text-4xl font-bold text-sl mb-16 leading-snug">
+        <h2 className="font-display text-4xl font-bold text-gray-700 mb-16 leading-snug">
           Everything your<br />relationship needs, in one place
         </h2>
 
@@ -89,15 +89,15 @@ export default function LandingPage() {
           {FEATURES.map((f) => (
             <div
               key={f.title}
-              className="bg-white rounded-2xl p-9 border border-sl/5 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md group relative overflow-hidden"
+              className="bg-white rounded-2xl p-9 border border-gray-700/5 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md group relative overflow-hidden"
             >
               <div className="absolute top-0 left-0 right-0 h-0.5 bg-cr scale-x-0 origin-left transition-transform group-hover:scale-x-100" />
               <div className="w-13 h-13 rounded-lg bg-cr-pale flex items-center justify-center text-2xl mb-5"
                 style={{ width: 52, height: 52 }}>
                 {f.icon}
               </div>
-              <h3 className="font-display text-lg font-semibold text-sl mb-2">{f.title}</h3>
-              <p className="text-sm text-sl-muted leading-relaxed">{f.desc}</p>
+              <h3 className="font-display text-lg font-semibold text-gray-700 mb-2">{f.title}</h3>
+              <p className="text-sm text-gray-500 leading-relaxed">{f.desc}</p>
             </div>
           ))}
         </div>
@@ -115,7 +115,7 @@ export default function LandingPage() {
           </p>
         </div>
         <Link
-          href="/tasks"
+          href="/login"
           className="px-8 py-3 rounded-full text-white font-semibold text-sm transition-all hover:-translate-y-0.5"
           style={{ background: '#C0392B', boxShadow: '0 4px 16px rgba(192,57,43,0.3)' }}
         >
