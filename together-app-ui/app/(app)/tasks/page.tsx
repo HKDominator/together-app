@@ -1,0 +1,338 @@
+// ─────────────────────────────────────────────────────────────────────
+// Destination: app/(app)/tasks/page.tsx
+// Gold A2 changes from Silver:
+//   1. Removed the <Pagination /> component at the bottom of the table.
+//   2. Replaced manual per-page slicing with streaming: the backend
+//      drives pages via `loadMore()`, we just render all `tasks` that
+//      match the current client-side filters.
+//   3. Added <div ref={prefetchRef}> ~1 page from the bottom and
+//      <div ref={sentinelRef}> at the end. IntersectionObserver
+//      triggers prefetch and loadMore respectively.
+//   4. Footer line shows "N of M loaded" + loading spinner when fetching.
+// ─────────────────────────────────────────────────────────────────────
+'use client'
+import { useState, useMemo, useEffect, MouseEvent } from 'react'
+import { useRouter } from 'next/navigation'
+import { useTasks } from '@/context/TasksContext'
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
+import PriorityBadge from '@/components/ui/PriorityBadge'
+import StateChip     from '@/components/ui/StateChip'
+import TaskFormModal from '@/components/tasks/TaskFormModal'
+import PageWrapper   from '@/components/layout/PageWrapper'
+import { Priority, Task, TaskState, ValidatedTaskData } from '@/types'
+import { trackSearch, trackFilters, trackTask } from '@/lib/activity'
+
+export default function TasksPage() {
+  const router = useRouter()
+  const {
+    tasks, users,
+    createTask, updateTask, deleteTask,
+    pendingCount, generatorRunning, startGenerator, stopGenerator,
+    hasMore, totalTasks, isLoadingMore, loadMore, prefetchNext,
+  } = useTasks()
+
+  const [search,         setSearch]        = useState<string>('')
+  const [filterState,    setFilterState]   = useState<TaskState | 'all'>('all')
+  const [filterAssignee, setFilterAssignee] = useState<string>('all')
+  const [filterPriority, setFilterPriority] = useState<Priority | 'all'>('all')
+  const [modalOpen,      setModalOpen]     = useState<boolean>(false)
+  const [editingTask,    setEditingTask]   = useState<Task | null>(null)
+  const [deleteId,       setDeleteId]      = useState<string | null>(null)
+
+  useEffect(() => {
+    trackFilters({ state: filterState, assignee: filterAssignee, priority: filterPriority })
+  }, [filterState, filterAssignee, filterPriority])
+
+  useEffect(() => {
+    const t = setTimeout(() => { if (search) trackSearch(search) }, 600)
+    return () => clearTimeout(t)
+  }, [search])
+
+  const filtered = useMemo(() => {
+    return tasks.filter(t => {
+      if (search             && !t.title.toLowerCase().includes(search.toLowerCase())) return false
+      if (filterState    !== 'all' && t.state      !== filterState)    return false
+      if (filterAssignee !== 'all' && t.assigneeId !== filterAssignee) return false
+      if (filterPriority !== 'all' && t.priority   !== filterPriority) return false
+      return true
+    })
+  }, [tasks, search, filterState, filterAssignee, filterPriority])
+
+  // ── Infinite scroll plumbing ───────────────────────────────────
+  // Disabled when client-side filters are active — we can't know if
+  // "more" pages will have matches without fetching them, and the
+  // user-visible effect is the list looking shorter than expected.
+  // Simple rule: only paginate while showing the unfiltered list.
+  const anyFilterActive =
+    !!search || filterState !== 'all' || filterAssignee !== 'all' || filterPriority !== 'all'
+
+  const { sentinelRef, prefetchRef } = useInfiniteScroll({
+    enabled:    !anyFilterActive && hasMore,
+    onLoadMore: loadMore,
+    onPrefetch: prefetchNext,
+  })
+
+  const total      = tasks.length
+  const inProgress = tasks.filter(t => t.state === 'in_progress').length
+  const done       = tasks.filter(t => t.state === 'done').length
+  const overdue    = tasks.filter(t =>
+    t.dueDate && new Date(t.dueDate) < new Date() &&
+    t.state !== 'done' && t.state !== 'cancelled',
+  ).length
+
+  const findUser = (id: string) => users.find(u => u.id === id)
+  const userName = (id: string) => users.find(u => u.id === id)?.name ?? '—'
+
+  function openCreate() { setEditingTask(null); setModalOpen(true) }
+  function openEdit(task: Task, e: MouseEvent<HTMLButtonElement>) {
+    e.stopPropagation(); setEditingTask(task); setModalOpen(true)
+  }
+
+  async function handleSubmit(formData: ValidatedTaskData) {
+    try {
+      if (editingTask) await updateTask(editingTask.id, formData)
+      else              await createTask(formData)
+    } catch (err) { console.error(err) }
+  }
+
+  async function handleDelete() {
+    if (!deleteId) return
+    try { await deleteTask(deleteId) } finally { setDeleteId(null) }
+  }
+
+  function handleRowClick(id: string) { trackTask(id); router.push(`/tasks/${id}`) }
+
+  async function toggleGenerator() {
+    if (generatorRunning) await stopGenerator()
+    else                  await startGenerator()
+  }
+
+  // Prefetch sentinel goes just above the real sentinel — in practice
+  // we want the prefetch to fire roughly one page-height before the
+  // load-more sentinel, so we slot it a bit earlier in the list.
+  const prefetchIndex = Math.max(0, filtered.length - 10)
+
+  return (
+    <PageWrapper>
+      <div className="p-9">
+        <div className="flex items-start justify-between mb-8">
+          <div>
+            <h1 className="font-display text-3xl font-bold text-gray-800 mb-1 flex items-center gap-3">
+              Tasks
+              {pendingCount > 0 && (
+                <span className="text-xs font-semibold px-2 py-1 rounded-full bg-amber-100 text-amber-800">
+                  {pendingCount} pending sync
+                </span>
+              )}
+            </h1>
+            <p className="text-xs text-gray-500">Workspace › Tasks › All</p>
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={toggleGenerator}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all hover:-translate-y-0.5
+                ${generatorRunning
+                  ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                  : 'bg-white text-gray-700 border border-gray-200 hover:border-cr'}`}
+            >
+              {generatorRunning ? '■ Stop generator' : '▶ Generate'}
+            </button>
+
+            <button
+              onClick={openCreate}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-white text-sm font-semibold transition-all hover:-translate-y-0.5 active:scale-95"
+              style={{ background: '#C0392B', boxShadow: '0 3px 12px rgba(192,57,43,0.3)' }}
+            >
+              ＋ New Task
+            </button>
+          </div>
+        </div>
+
+        {/* ── Stat cards ─────────────────────────────── */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
+          {[
+            { label: 'Loaded',      value: total,      sub: `of ${totalTasks} total`, barW: totalTasks ? `${Math.round(total/totalTasks*100)}%` : '0%', barC: '#C0392B' },
+            { label: 'In Progress', value: inProgress, sub: 'being worked on',        barW: `${Math.round(inProgress/total*100)||0}%`,                   barC: '#2980B9' },
+            { label: 'Done',        value: done,       sub: 'completed',              barW: `${Math.round(done/total*100)||0}%`,                         barC: '#27AE60' },
+            { label: 'Overdue',     value: overdue,    sub: 'need attention',         barW: `${Math.round(overdue/total*100)||0}%`,                      barC: '#E74C3C' },
+          ].map(s => (
+            <div key={s.label} className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm card-hover">
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">{s.label}</p>
+              <p className="font-display text-3xl font-bold text-gray-800 leading-none mb-1">{s.value}</p>
+              <p className="text-xs text-gray-400 mb-3">{s.sub}</p>
+              <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-full rounded-full transition-all duration-700" style={{ width: s.barW, background: s.barC }} />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Filters ────────────────────────────────── */}
+        <div className="flex flex-wrap gap-3 mb-6">
+          <div className="relative flex-1 min-w-48">
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-gray-400">🔍</span>
+            <input
+              type="text"
+              placeholder="Search tasks…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 placeholder:text-gray-400 outline-none focus:border-cr focus:ring-2 focus:ring-cr-pale"
+            />
+          </div>
+          <select
+            value={filterAssignee}
+            onChange={e => setFilterAssignee(e.target.value)}
+            className="rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 outline-none focus:border-cr"
+          >
+            <option value="all">All assignees</option>
+            {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+          </select>
+          <select
+            value={filterPriority}
+            onChange={e => setFilterPriority(e.target.value as Priority | 'all')}
+            className="rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 outline-none focus:border-cr"
+          >
+            <option value="all">All priorities</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+          {(['all', 'todo', 'in_progress', 'done', 'cancelled'] as (TaskState | 'all')[]).map(s => (
+            <button
+              key={s}
+              onClick={() => setFilterState(s)}
+              className={`px-3.5 py-2 rounded-full text-xs font-semibold transition-all border
+                ${filterState === s
+                  ? 'bg-cr-pale border-cr text-cr'
+                  : 'bg-white border-gray-200 text-gray-600 hover:border-cr hover:text-cr'}`}
+            >
+              {s === 'all' ? 'All' : s === 'in_progress' ? 'In Progress' : s.charAt(0).toUpperCase() + s.slice(1)}
+            </button>
+          ))}
+        </div>
+
+        {/* ── Table + infinite scroll ─────────────────── */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="grid grid-cols-[2fr_1fr_100px_110px_100px_80px] px-6 py-3 bg-gray-50 border-b border-gray-100">
+            {['Task', 'Assignee', 'Priority', 'Due Date', 'Status', ''].map(h => (
+              <span key={h} className="text-xs font-bold uppercase tracking-wide text-gray-500">{h}</span>
+            ))}
+          </div>
+
+          {filtered.length === 0 ? (
+            <div className="px-6 py-16 text-center text-gray-400 text-sm">
+              No tasks match your filters.
+            </div>
+          ) : (
+            filtered.map((t, i) => {
+              const isOverdue = t.dueDate && new Date(t.dueDate) < new Date() && t.state !== 'done' && t.state !== 'cancelled'
+              const u = findUser(t.assigneeId)
+              const isOptimistic = t.id.startsWith('tmp_')
+              const isPrefetchRow = !anyFilterActive && i === prefetchIndex
+              return (
+                <div
+                  key={t.id}
+                  onClick={() => handleRowClick(t.id)}
+                  className={`grid grid-cols-[2fr_1fr_100px_110px_100px_80px] px-6 py-3.5 border-b border-gray-50
+                    items-center cursor-pointer transition-colors hover:bg-cm-pale last:border-b-0
+                    ${isOverdue ? 'bg-red-50/30' : ''}
+                    ${isOptimistic ? 'opacity-60' : ''}`}
+                >
+                  <div className="relative">
+                    {isPrefetchRow && <div ref={prefetchRef} className="absolute inset-0 pointer-events-none" />}
+                    <p className="text-sm font-medium text-gray-800 truncate max-w-xs">
+                      {t.title}
+                      {isOptimistic && <span className="ml-2 text-xs text-amber-600">· syncing</span>}
+                    </p>
+                    {t.description && (
+                      <p className="text-xs text-gray-400 truncate max-w-xs mt-0.5">{t.description}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {u && (
+                      <div className="w-6 h-6 rounded-full flex items-center justify-center text-white flex-shrink-0"
+                        style={{ background: u.avatarColor, fontSize: 9 }}>
+                        {u.initials}
+                      </div>
+                    )}
+                    <span className="text-xs text-gray-600">{userName(t.assigneeId)}</span>
+                  </div>
+                  <PriorityBadge priority={t.priority} />
+                  <span className={`text-xs ${isOverdue ? 'text-red-600 font-semibold' : 'text-gray-600'}`}>
+                    {isOverdue && '⚠ '}
+                    {t.dueDate ? new Date(t.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '—'}
+                  </span>
+                  <StateChip state={t.state} />
+                  <div className="flex gap-1" onClick={e => e.stopPropagation()}>
+                    <button
+                      onClick={e => openEdit(t, e)}
+                      className="p-1.5 rounded-md text-gray-400 hover:text-cr hover:bg-cr-pale transition-colors text-sm"
+                      title="Edit"
+                    >✎</button>
+                    <button
+                      onClick={e => { e.stopPropagation(); setDeleteId(t.id) }}
+                      className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors text-sm"
+                      title="Delete"
+                    >🗑</button>
+                  </div>
+                </div>
+              )
+            })
+          )}
+
+          {/* Footer — loading state + sentinel */}
+          <div className="px-6 py-4 text-center text-xs text-gray-400 border-t border-gray-100 bg-gray-50">
+            {anyFilterActive ? (
+              <span>Showing {filtered.length} filtered result{filtered.length === 1 ? '' : 's'} from {tasks.length} loaded</span>
+            ) : isLoadingMore ? (
+              <span className="inline-flex items-center gap-2">
+                <span className="inline-block w-3 h-3 border-2 border-gray-300 border-t-cr rounded-full animate-spin" />
+                Loading more…
+              </span>
+            ) : hasMore ? (
+              <span>Scroll to load more · {tasks.length} of {totalTasks}</span>
+            ) : (
+              <span>All {tasks.length} tasks loaded ✓</span>
+            )}
+          </div>
+
+          {/* Load-more sentinel — IntersectionObserver watches this */}
+          <div ref={sentinelRef} aria-hidden className="h-1" />
+        </div>
+
+        <TaskFormModal
+          isOpen={modalOpen}
+          task={editingTask}
+          onClose={() => setModalOpen(false)}
+          onSubmit={handleSubmit}
+        />
+
+        {deleteId && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-enter"
+            style={{ background: 'rgba(26,37,51,0.55)', backdropFilter: 'blur(4px)' }}
+          >
+            <div className="bg-white rounded-3xl p-10 w-full max-w-sm shadow-2xl modal-enter">
+              <h3 className="font-display text-xl font-bold text-gray-800 mb-3">Delete this task?</h3>
+              <p className="text-sm text-gray-500 mb-7">
+                <strong className="text-gray-800">&ldquo;{tasks.find(t => t.id === deleteId)?.title ?? 'this task'}&rdquo;</strong>{' '}
+                will be permanently removed. This cannot be undone.
+              </p>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setDeleteId(null)}
+                  className="px-5 py-2.5 rounded-lg border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                >Keep Task</button>
+                <button
+                  onClick={handleDelete}
+                  className="px-5 py-2.5 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors"
+                >Yes, Delete</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </PageWrapper>
+  )
+}

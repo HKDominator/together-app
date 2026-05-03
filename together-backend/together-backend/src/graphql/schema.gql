@@ -1,0 +1,143 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type ByPriorityGQL {
+  high: Int!
+  low: Int!
+  medium: Int!
+}
+
+type ByStateGQL {
+  cancelled: Int!
+  done: Int!
+  in_progress: Int!
+  todo: Int!
+}
+
+type Comment {
+  authorId: String!
+  body: String!
+  createdAt: String!
+  id: ID!
+  taskId: String!
+  updatedAt: String!
+}
+
+input CreateCommentInput {
+  body: String!
+}
+
+input CreateTaskInput {
+  assigneeId: String!
+  description: String
+  dueDate: String
+  priority: Priority!
+  title: String!
+}
+
+type Mutation {
+  addComment(input: CreateCommentInput!, taskId: ID!): Comment!
+  createTask(input: CreateTaskInput!): Task!
+  deleteComment(id: ID!): Boolean!
+  deleteTask(id: ID!): Boolean!
+  editComment(id: ID!, input: UpdateCommentInput!): Comment!
+  setTaskState(id: ID!, newState: TaskState!): Task!
+  updateTask(id: ID!, input: UpdateTaskInput!): Task!
+}
+
+type PaginatedTasks {
+  items: [Task!]!
+  page: Int!
+  perPage: Int!
+  total: Int!
+  totalPages: Int!
+}
+
+enum Priority {
+  HIGH
+  LOW
+  MEDIUM
+}
+
+type Query {
+  commentsForTask(taskId: ID!): [Comment!]!
+  stats: TasksStats!
+  task(id: ID!): Task
+  tasks(query: TasksQueryInput): PaginatedTasks!
+  users: [UserGQL!]!
+}
+
+type Task {
+  assigneeId: String!
+  commentCount: Int!
+  comments: [Comment!]!
+  createdAt: String!
+  createdById: String!
+  description: String!
+  dueDate: String
+  id: ID!
+  priority: Priority!
+  state: TaskState!
+  title: String!
+  updatedAt: String!
+}
+
+enum TaskState {
+  CANCELLED
+  DONE
+  IN_PROGRESS
+  TODO
+}
+
+input TasksQueryInput {
+  assigneeId: String
+  page: Int
+  perPage: Int
+  priority: Priority
+  search: String
+  state: TaskState
+}
+
+type TasksStats {
+  byPriority: ByPriorityGQL!
+  byState: ByStateGQL!
+  byUser: [UserStatsGQL!]!
+  completionRate: Int!
+  overdue: Int!
+  recentCount: Int!
+  topCommentedTasks: [TopCommentedTaskGQL!]!
+  total: Int!
+}
+
+type TopCommentedTaskGQL {
+  count: Int!
+  taskId: String!
+  title: String!
+}
+
+input UpdateCommentInput {
+  body: String!
+}
+
+input UpdateTaskInput {
+  assigneeId: String
+  description: String
+  dueDate: String
+  priority: Priority
+  title: String
+}
+
+type UserGQL {
+  avatarColor: String!
+  id: ID!
+  initials: String!
+  name: String!
+  role: String!
+}
+
+type UserStatsGQL {
+  done: Int!
+  total: Int!
+  userId: String!
+}
