@@ -35,7 +35,7 @@ export class LogsService {
   countSince(userId: string, sinceMs: number, action?: string): Promise<number> {
     const qb = this.repo.createQueryBuilder('l')
       .where('l.userId = :userId', { userId })
-      .andWhere('l.createdAt > :since', { since: new Date(Date.now() - sinceMs).toISOString() })
+      .andWhere('l.createdAt > :since', { since: new Date(Date.now() - sinceMs) })
     if (action) qb.andWhere('l.action LIKE :action', { action: `%${action}%` })
     return qb.getCount()
   }

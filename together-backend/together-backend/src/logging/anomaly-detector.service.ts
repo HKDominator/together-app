@@ -50,7 +50,7 @@ export class AnomalyDetectorService {
       const deletes = await this.actionLogs.createQueryBuilder('l')
         .where('l.userId = :u', { u: latest.userId })
         .andWhere('l.method = :m', { m: 'DELETE' })
-        .andWhere('l.createdAt > :since', { since: new Date(Date.now() - FIVE_MIN_MS).toISOString() })
+        .andWhere('l.createdAt > :since', { since: new Date(Date.now() - FIVE_MIN_MS) })
         .getCount()
       evidence.deletesLast5Min = deletes
       if (deletes > RULES.DELETE_THRESHOLD) {
@@ -62,7 +62,7 @@ export class AnomalyDetectorService {
       const errors = await this.actionLogs.createQueryBuilder('l')
         .where('l.userId = :u', { u: latest.userId })
         .andWhere('l.statusCode >= 400 AND l.statusCode < 500')
-        .andWhere('l.createdAt > :since', { since: new Date(Date.now() - FIVE_MIN_MS).toISOString() })
+        .andWhere('l.createdAt > :since', { since: new Date(Date.now() - FIVE_MIN_MS) })
         .getCount()
       evidence.clientErrorsLast5Min = errors
       if (errors > RULES.ERROR_THRESHOLD) {

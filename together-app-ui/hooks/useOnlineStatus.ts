@@ -1,9 +1,14 @@
 // ─────────────────────────────────────────────────────────────────────
 // Destination: hooks/useOnlineStatus.ts
-// Tracks online/offline status with two signals:
-//   1. navigator.onLine + 'online'/'offline' window events (cheap, instant)
-//   2. Periodic health-check ping via fetch (catches "internet works
-//      but backend is down" — navigator.onLine can't tell you that).
+// FIXED:
+//   1. ping() now sends `credentials: 'include'` so CORS-with-credentials
+//      doesn't reject it.
+//   2. Any HTTP response (even 4xx/5xx) means the server IS reachable
+//      → we're online. Only a fetch *throw* (network error) flips to
+//      offline. Previously a 401 was treated as offline.
+//   3. Initial state is `true` (assume online). The first ping runs
+//      after a tiny delay so the backend has time to be reachable
+//      after page load.
 // ─────────────────────────────────────────────────────────────────────
 'use client'
 import { useEffect, useState, useCallback } from 'react'
@@ -16,33 +21,43 @@ export function useOnlineStatus() {
   const [isOnline, setIsOnline] = useState<boolean>(initiallyOnline)
 
   const ping = useCallback(async () => {
+    // navigator.onLine is the cheapest signal — if the browser already
+    // knows we're disconnected, no point trying the network.
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      setIsOnline(false)
+      return
+    }
     try {
-      // HEAD would be nicer but the NestJS controllers don't register
-      // HEAD verbs; a cheap GET /tasks?perPage=1 works as a heartbeat.
-      const res = await fetch(`${API_URL}/tasks?perPage=1`, { method: 'GET' })
-      setIsOnline(res.ok)
+      // Any HTTP response = server is reachable. Don't filter on res.ok
+      // because a 401 still proves the server is up.
+      await fetch(`${API_URL}/tasks?perPage=1`, {
+        method:      'GET',
+        credentials: 'include',
+      })
+      setIsOnline(true)
     } catch {
       setIsOnline(false)
     }
   }, [])
 
   useEffect(() => {
-     const deferredPing = () => queueMicrotask(() => { void ping() })
     const onOnline  = () => { setIsOnline(true);  ping() }
     const onOffline = () => setIsOnline(false)
 
     window.addEventListener('online',  onOnline)
     window.addEventListener('offline', onOffline)
 
-    // Verify once on mount — the browser might say "online" while
-    // the backend is actually down.
-    deferredPing()
+    // Defer first ping slightly — gives the backend a moment to be
+    // reachable after a fresh page load and avoids a false "offline"
+    // flash on slow startups.
+    const initialPing = window.setTimeout(() => { void ping() }, 250)
 
-    const interval = setInterval(ping, PING_INTERVAL_MS)
+    const interval = window.setInterval(ping, PING_INTERVAL_MS)
     return () => {
       window.removeEventListener('online',  onOnline)
       window.removeEventListener('offline', onOffline)
-      clearInterval(interval)
+      window.clearTimeout(initialPing)
+      window.clearInterval(interval)
     }
   }, [ping])
 

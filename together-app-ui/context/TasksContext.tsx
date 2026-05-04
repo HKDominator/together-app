@@ -270,7 +270,7 @@ export function TasksProvider({ children }: { children: ReactNode }) {
       .then(list => { if (!cancelled) setUsers(list) })
       .catch(() => {})
     return () => { cancelled = true }
-  })
+  }, [])
 
   // ── Drain offline queue on reconnect ───────────────────────────
   useEffect(() => {
