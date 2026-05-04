@@ -8,7 +8,7 @@ import { CommentsModule } from './comments/comments.module'
 import { GraphqlAppModule } from './graphql/graphql.module'
 import { AuthModule } from './auth/auth.module'
 import { ChatModule } from './chat/chat.module'
-import { LogsModule } from './logs/logs.module'
+import { LogsModule } from './logging/logs.module'
 
 @Module({
   imports: [
