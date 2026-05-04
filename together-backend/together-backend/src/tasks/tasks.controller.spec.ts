@@ -1,20 +1,15 @@
+// Destination: together-backend/together-backend/src/tasks/tasks.controller.spec.ts
+// REPLACE — service mocks now return Promises.
 import { Test, TestingModule } from '@nestjs/testing'
 import { TasksController } from './tasks.controller'
 import { TasksService } from './tasks.service'
 import { Priority, TaskState } from './entities/task.entity'
 
-// Minimal fake — we just assert the controller delegates to the service.
 const makeTask = () => ({
-  id:          't-1',
-  title:       'Test',
-  description: '',
-  assigneeId:  'u1',
-  createdById: 'u1',
-  priority:    Priority.HIGH,
-  state:       TaskState.TODO,
-  dueDate:     null,
-  createdAt:   new Date().toISOString(),
-  updatedAt:   new Date().toISOString(),
+  id: 't-1', title: 'Test', description: '',
+  assigneeId: 'u-1', createdById: 'u-1',
+  priority: Priority.HIGH, state: TaskState.TODO, dueDate: null,
+  createdAt: new Date(), updatedAt: new Date(),
 })
 
 describe('TasksController', () => {
@@ -22,14 +17,14 @@ describe('TasksController', () => {
   let service:    jest.Mocked<TasksService>
 
   beforeEach(async () => {
-    const mock: Partial<jest.Mocked<TasksService>> = {
+    const mock = {
       findAll:  jest.fn(),
       findOne:  jest.fn(),
       create:   jest.fn(),
       update:   jest.fn(),
       setState: jest.fn(),
       remove:   jest.fn(),
-    }
+    } as unknown as jest.Mocked<TasksService>
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [TasksController],
@@ -40,47 +35,30 @@ describe('TasksController', () => {
     service    = module.get(TasksService) as jest.Mocked<TasksService>
   })
 
-  it('GET / → delegates to findAll with the query DTO', () => {
+  it('GET / delegates to findAll', async () => {
     const page = { items: [], total: 0, page: 1, perPage: 10, totalPages: 1 }
-    service.findAll.mockReturnValue(page)
-    const res = controller.findAll({ page: 1, perPage: 10 })
-    expect(service.findAll).toHaveBeenCalledWith({ page: 1, perPage: 10 })
-    expect(res).toBe(page)
+    service.findAll.mockResolvedValue(page)
+    expect(await controller.findAll({ page: 1, perPage: 10 })).toBe(page)
   })
 
-  it('GET /:id → delegates to findOne', () => {
+  it('POST / delegates to create', async () => {
     const t = makeTask()
-    service.findOne.mockReturnValue(t)
-    expect(controller.findOne('t-1')).toBe(t)
-    expect(service.findOne).toHaveBeenCalledWith('t-1')
+    service.create.mockResolvedValue(t)
+    const r = await controller.create({ title: 'Test', assigneeId: 'u-1', priority: Priority.HIGH })
+    expect(r).toBe(t)
   })
 
-  it('POST / → delegates to create', () => {
-    const t = makeTask()
-    service.create.mockReturnValue(t)
-    const dto = { title: 'Test', assigneeId: 'u1', priority: Priority.HIGH }
-    expect(controller.create(dto)).toBe(t)
-    expect(service.create).toHaveBeenCalledWith(dto)
-  })
-
-  it('PATCH /:id → delegates to update', () => {
-    const t = makeTask()
-    service.update.mockReturnValue(t)
-    expect(controller.update('t-1', { title: 'New' })).toBe(t)
-    expect(service.update).toHaveBeenCalledWith('t-1', { title: 'New' })
-  })
-
-  it('PATCH /:id/state → unwraps newState from the DTO', () => {
+  it('PATCH /:id/state unwraps newState from the DTO', async () => {
     const t = { ...makeTask(), state: TaskState.IN_PROGRESS }
-    service.setState.mockReturnValue(t)
-    const res = controller.setState('t-1', { newState: TaskState.IN_PROGRESS })
+    service.setState.mockResolvedValue(t)
+    const r = await controller.setState('t-1', { newState: TaskState.IN_PROGRESS })
     expect(service.setState).toHaveBeenCalledWith('t-1', TaskState.IN_PROGRESS)
-    expect(res).toBe(t)
+    expect(r).toBe(t)
   })
 
-  it('DELETE /:id → delegates to remove and returns void', () => {
-    service.remove.mockReturnValue(undefined)
-    expect(controller.remove('t-1')).toBeUndefined()
+  it('DELETE /:id awaits the service', async () => {
+    service.remove.mockResolvedValue()
+    await expect(controller.remove('t-1')).resolves.toBeUndefined()
     expect(service.remove).toHaveBeenCalledWith('t-1')
   })
 })

@@ -36,11 +36,6 @@ import { useOnlineStatus } from '@/hooks/useOnlineStatus'
 const INITIAL_PAGE_SIZE = 20
 const PAGE_SIZE         = 20
 
-export const USERS: User[] = [
-  { id: 'u1', name: 'Ana Pop',     role: 'owner',   avatarColor: '#C0392B', initials: 'AP' },
-  { id: 'u2', name: 'Dan Ionescu', role: 'partner', avatarColor: '#2980B9', initials: 'DI' },
-]
-
 export const VALID_TRANSITIONS: Record<TaskState, TaskState[]> = {
   todo:        ['in_progress', 'cancelled'],
   in_progress: ['done', 'cancelled'],
@@ -144,6 +139,7 @@ export function TasksProvider({ children }: { children: ReactNode }) {
   const [totalPages, setTotalPages]   = useState(1)
   const [pendingCount, setPendingCount] = useState(0)
   const [generatorRunning, setGeneratorRunning] = useState(false)
+  const [users, setUsers] = useState<User[]>([])
   const { isOnline } = useOnlineStatus()
 
   const isOnlineRef = useRef(isOnline)
@@ -157,6 +153,7 @@ export function TasksProvider({ children }: { children: ReactNode }) {
   const refreshPending = useCallback(() => setPendingCount(offlineQueue.size()), [])
 
   const hasMore = currentPage < totalPages
+
 
   // ── Initial hydrate ────────────────────────────────────────────
   useEffect(() => {
@@ -266,6 +263,14 @@ export function TasksProvider({ children }: { children: ReactNode }) {
       sock.off('generator:stopped', onGenStop)
     }
   }, [])
+
+   useEffect(() => {
+    let cancelled = false
+    api.listUsers()
+      .then(list => { if (!cancelled) setUsers(list) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  })
 
   // ── Drain offline queue on reconnect ───────────────────────────
   useEffect(() => {
@@ -392,8 +397,8 @@ export function TasksProvider({ children }: { children: ReactNode }) {
     <TasksContext.Provider
       value={{
         tasks:        state.tasks,
-        users:        USERS,
-        currentUser:  USERS[0],
+        users:        users,
+        currentUser:  users[0],
         isOnline,
         isLoading,
         isLoadingMore,

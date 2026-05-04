@@ -1,25 +1,24 @@
+// Destination: together-backend/together-backend/src/tasks/tasks.module.ts
 import { Module, forwardRef } from '@nestjs/common'
+import { TypeOrmModule } from '@nestjs/typeorm'
 import { TasksController } from './tasks.controller'
 import { GeneratorController } from './generator.controller'
 import { TasksService } from './tasks.service'
 import { TasksRepository } from './tasks.repository'
 import { TasksGateway } from './tasks.gateway'
 import { TaskGeneratorService } from './task-generator.service'
+import { Task } from './entities/task.entity'
 import { UsersModule } from '../users/users.module'
 import { CommentsModule } from '../comments/comments.module'
 
 @Module({
-  // forwardRef breaks the TasksModule ↔ CommentsModule circular
-  // dependency (tasks imports comments for cascade; comments imports
-  // tasks to validate taskId existence).
-  imports:     [UsersModule, forwardRef(() => CommentsModule)],
-  controllers: [TasksController, GeneratorController],
-  providers: [
-    TasksService,
-    TasksRepository,
-    TasksGateway,
-    TaskGeneratorService,
+  imports: [
+    TypeOrmModule.forFeature([Task]),
+    UsersModule,
+    forwardRef(() => CommentsModule),
   ],
+  controllers: [TasksController, GeneratorController],
+  providers:   [TasksService, TasksRepository, TasksGateway, TaskGeneratorService],
   exports:     [TasksService, TasksRepository, TasksGateway],
 })
 export class TasksModule {}

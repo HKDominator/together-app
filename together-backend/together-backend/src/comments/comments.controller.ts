@@ -40,7 +40,7 @@ export class CommentsController {
 
   @Delete('comments/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Param('id') id: string) {
-    this.comments.remove(id)
+  async remove(@Param('id') id: string): Promise<void> {
+    await this.comments.remove(id)
   }
 }

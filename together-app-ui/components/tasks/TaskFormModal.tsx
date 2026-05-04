@@ -1,9 +1,9 @@
 'use client'
 import { useState, useEffect, ChangeEvent, FormEvent } from 'react'
 import { validateTask, isValid } from '@/lib/validation'
-import { USERS } from '@/context/TasksContext'
 import FormInput from '@/components/ui/FormInput'
 import { Task, TaskFormData, ValidatedTaskData, ValidationErrors } from '@/types'
+import { useTasks } from '@/context/TasksContext'
 
 interface Props {
   isOpen:   boolean
@@ -32,6 +32,7 @@ export default function TaskFormModal({ isOpen, task, onClose, onSubmit }: Props
   const [errors, setErrors] = useState<ValidationErrors>({})
 
   const mode = task ? 'edit' : 'create'
+  const users = useTasks().users
 
   // Sync form state whenever we open OR the task prop changes.
   useEffect(() => {
@@ -137,7 +138,7 @@ export default function TaskFormModal({ isOpen, task, onClose, onSubmit }: Props
                   ${errors.assigneeId ? 'border-red-400 bg-red-50' : 'border-gray-200 focus:border-cr'}`}
               >
                 <option value="">Select…</option>
-                {USERS.map(u => (
+                {users.map(u => (
                   <option key={u.id} value={u.id}>{u.name}</option>
                 ))}
               </select>

@@ -1,9 +1,7 @@
+// Destination: together-backend/together-backend/src/graphql/comments.resolver.ts
+// REPLACE the entire file.
 import {
-  Args,
-  ID,
-  Mutation,
-  Query,
-  Resolver,
+  Args, ID, Mutation, Query, Resolver,
 } from '@nestjs/graphql'
 import { CommentsService } from '../comments/comments.service'
 import { CommentGQL } from './models'
@@ -14,29 +12,29 @@ export class CommentsResolver {
   constructor(private readonly comments: CommentsService) {}
 
   @Query(() => [CommentGQL], { name: 'commentsForTask' })
-  list(@Args('taskId', { type: () => ID }) taskId: string): CommentGQL[] {
-    return this.comments.listForTask(taskId) as CommentGQL[]
+  async list(@Args('taskId', { type: () => ID }) taskId: string): Promise<CommentGQL[]> {
+    return (await this.comments.listForTask(taskId)) as unknown as CommentGQL[]
   }
 
   @Mutation(() => CommentGQL)
-  addComment(
+  async addComment(
     @Args('taskId', { type: () => ID }) taskId: string,
     @Args('input')                      input:  CreateCommentInput,
-  ): CommentGQL {
-    return this.comments.create(taskId, input) as CommentGQL
+  ): Promise<CommentGQL> {
+    return (await this.comments.create(taskId, input)) as unknown as CommentGQL
   }
 
   @Mutation(() => CommentGQL)
-  editComment(
+  async editComment(
     @Args('id',    { type: () => ID }) id:    string,
     @Args('input')                     input: UpdateCommentInput,
-  ): CommentGQL {
-    return this.comments.update(id, input) as CommentGQL
+  ): Promise<CommentGQL> {
+    return (await this.comments.update(id, input)) as unknown as CommentGQL
   }
 
   @Mutation(() => Boolean)
-  deleteComment(@Args('id', { type: () => ID }) id: string): boolean {
-    this.comments.remove(id)
+  async deleteComment(@Args('id', { type: () => ID }) id: string): Promise<boolean> {
+    await this.comments.remove(id)
     return true
   }
 }

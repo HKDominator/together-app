@@ -1,14 +1,19 @@
+// Destination: together-backend/together-backend/src/comments/comments.module.ts
 import { Module, forwardRef } from '@nestjs/common'
+import { TypeOrmModule } from '@nestjs/typeorm'
 import { CommentsController } from './comments.controller'
 import { CommentsService } from './comments.service'
 import { CommentsRepository } from './comments.repository'
+import { Comment } from './entities/comment.entity'
 import { TasksModule } from '../tasks/tasks.module'
 import { UsersModule } from '../users/users.module'
 
 @Module({
-  // forwardRef because TasksModule will import CommentsModule
-  // back for the cascade-on-delete hook.
-  imports:     [forwardRef(() => TasksModule), UsersModule],
+  imports: [
+    TypeOrmModule.forFeature([Comment]),
+    forwardRef(() => TasksModule),
+    UsersModule,
+  ],
   controllers: [CommentsController],
   providers:   [CommentsService, CommentsRepository],
   exports:     [CommentsService, CommentsRepository],

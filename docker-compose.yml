@@ -1,0 +1,51 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: together_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER:     ${POSTGRES_USER:-together}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-together_dev}
+      POSTGRES_DB:       ${POSTGRES_DB:-together}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-together}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  postgres-test:
+    image: postgres:16-alpine
+    container_name: together_postgres_test
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER:     ${POSTGRES_USER:-together}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-together_dev}
+      POSTGRES_DB:       together_test
+    ports:
+      - "5433:5432"
+    tmpfs:
+      - /var/lib/postgresql/data   # in-memory: tests start clean every container restart
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-together}"]
+      interval: 3s
+      retries: 10
+  # Destination: docker-compose.yml — APPEND another service
+  mongo:
+    image: mongo:7
+    container_name: together_mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      retries: 10
+
+volumes:
+  postgres_data:
+  mongo_data:

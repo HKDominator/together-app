@@ -1,8 +1,6 @@
+// Destination: together-backend/together-backend/src/comments/comments.service.ts
 import {
-  BadRequestException,
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
+  BadRequestException, ForbiddenException, Injectable, NotFoundException,
 } from '@nestjs/common'
 import { CommentsRepository } from './comments.repository'
 import { Comment } from './entities/comment.entity'
@@ -10,79 +8,76 @@ import { CreateCommentDto } from './dto/create-comment.dto'
 import { UpdateCommentDto } from './dto/update-comment.dto'
 import { TasksRepository } from '../tasks/tasks.repository'
 import { UsersService } from '../users/users.service'
-
-const DEFAULT_AUTHOR = 'u1'  // hardcoded current user for demo
+import { UsersRepository } from '../users/users.repository'
 
 @Injectable()
 export class CommentsService {
   constructor(
-    private readonly repo:     CommentsRepository,
-    private readonly tasks:    TasksRepository,
-    private readonly users:    UsersService,
+    private readonly repo:      CommentsRepository,
+    private readonly tasks:     TasksRepository,
+    private readonly users:     UsersService,
+    private readonly usersRepo: UsersRepository,
   ) {}
 
-  // ── Queries ──────────────────────────────────────────────────
-  listForTask(taskId: string): Comment[] {
-    this.assertTaskExists(taskId)
+  async listForTask(taskId: string): Promise<Comment[]> {
+    await this.assertTaskExists(taskId)
     return this.repo.findByTask(taskId)
-      .slice()
-      .sort((a, b) => a.createdAt.localeCompare(b.createdAt))  // oldest first → conversation reads top-to-bottom
   }
 
-  findOne(id: string): Comment {
-    const c = this.repo.findById(id)
+  async findOne(id: string): Promise<Comment> {
+    const c = await this.repo.findById(id)
     if (!c) throw new NotFoundException(`Comment ${id} not found`)
     return c
   }
 
-  countForTask(taskId: string): number {
+  countForTask(taskId: string): Promise<number> {
     return this.repo.countByTask(taskId)
   }
 
-  // ── Mutations ────────────────────────────────────────────────
-  create(taskId: string, dto: CreateCommentDto): Comment {
-    this.assertTaskExists(taskId)
-    if (!this.users.exists(DEFAULT_AUTHOR)) {
-      throw new BadRequestException(`Author ${DEFAULT_AUTHOR} does not exist`)
-    }
+  async create(taskId: string, dto: CreateCommentDto): Promise<Comment> {
+    await this.assertTaskExists(taskId)
+    const author = await this.resolveDefaultAuthor()
     return this.repo.insert({
       taskId,
-      authorId: DEFAULT_AUTHOR,
+      authorId: author.id,
       body:     dto.body.trim(),
     })
   }
 
-  update(id: string, dto: UpdateCommentDto): Comment {
-    const c = this.findOne(id)
-    // In a real app we'd check `authorId === currentUser`; here we hold
-    // the line on that rule anyway so the authorship contract is
-    // explicit in the code.
-    if (c.authorId !== DEFAULT_AUTHOR) {
+  async update(id: string, dto: UpdateCommentDto): Promise<Comment> {
+    const c = await this.findOne(id)
+    const author = await this.resolveDefaultAuthor()
+    if (c.authorId !== author.id) {
       throw new ForbiddenException('Only the author can edit this comment')
     }
     if (!dto.body) return c
-    const updated = this.repo.update(id, dto.body.trim())
+    const updated = await this.repo.update(id, dto.body.trim())
     if (!updated) throw new NotFoundException(`Comment ${id} not found`)
     return updated
   }
 
-  remove(id: string): void {
-    const c = this.findOne(id)
-    if (c.authorId !== DEFAULT_AUTHOR) {
+  async remove(id: string): Promise<void> {
+    const c = await this.findOne(id)
+    const author = await this.resolveDefaultAuthor()
+    if (c.authorId !== author.id) {
       throw new ForbiddenException('Only the author can delete this comment')
     }
-    this.repo.remove(id)
+    await this.repo.remove(id)
   }
 
-  /** Called by TasksService when a task is deleted — cascade. */
-  cascadeOnTaskDeletion(taskId: string): number {
+  cascadeOnTaskDeletion(taskId: string): Promise<number> {
     return this.repo.removeAllForTask(taskId)
   }
 
-  // ── Guards ───────────────────────────────────────────────────
-  private assertTaskExists(taskId: string): void {
-    if (!this.tasks.findById(taskId)) {
-      throw new NotFoundException(`Task ${taskId} not found`)
-    }
+  private async assertTaskExists(taskId: string): Promise<void> {
+    const t = await this.tasks.findById(taskId)
+    if (!t) throw new NotFoundException(`Task ${taskId} not found`)
+  }
+
+  private async resolveDefaultAuthor() {
+    const all = await this.usersRepo.findAll()
+    const author = all.find(u => u.role === 'owner') ?? all[0]
+    if (!author) throw new BadRequestException('No users seeded')
+    return author
   }
 }

@@ -6,6 +6,7 @@
 import { TasksProvider } from '@/context/TasksContext'
 import Sidebar from '@/components/layout/Sidebar'
 import OfflineBanner from '@/components/layout/OfflineBanner'
+import ChatPanel from '@/components/chat/ChatPanel'
 
 interface Props { children: React.ReactNode }
 
@@ -19,6 +20,7 @@ export default function AppLayout({ children }: Props) {
           <div className="flex-1">
             {children}
           </div>
+          <ChatPanel />
         </main>
       </div>
     </TasksProvider>

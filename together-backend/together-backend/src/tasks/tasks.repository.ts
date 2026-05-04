@@ -1,80 +1,131 @@
+// Destination: together-backend/together-backend/src/tasks/tasks.repository.ts
+// Replaces the in-memory Map. Same method signatures (now async) so
+// TasksService barely changes.
 import { Injectable } from '@nestjs/common'
-import { v4 as uuid } from 'uuid'
+import { InjectRepository } from '@nestjs/typeorm'
+import { ILike, Repository } from 'typeorm'
 import { Task, Priority, TaskState } from './entities/task.entity'
 
-/**
- * Pure in-memory storage of Task entities.
- *
- * Per the Bronze requirements of SDI Assignment 2:
- *   "the information will be stored solely in the RAM of the server
- *    machine (e.g. lists or dictionaries containing entities)
- *    NO PERSISTENCY OF ANY KIND!!!"
- *
- * A single instance lives for the process lifetime — tasks reset on
- * every restart. That's intentional.
- */
+export interface TasksFilter {
+  state?:      TaskState
+  priority?:   Priority
+  assigneeId?: string
+  search?:     string
+}
+
 @Injectable()
 export class TasksRepository {
-  private readonly store: Map<string, Task> = new Map()
+  constructor(
+    @InjectRepository(Task) private readonly repo: Repository<Task>,
+  ) {}
 
-  constructor() {
-    SEED_TASKS.forEach(t => this.store.set(t.id, { ...t }))
+  findAll(): Promise<Task[]> {
+    return this.repo.find({ order: { createdAt: 'DESC' } })
   }
 
-  findAll(): Task[] {
-    return Array.from(this.store.values())
+  /**
+   * Filtered + paginated query — pushed into SQL so we don't
+   * `findAll()` and slice in JS. Returns [items, totalMatching].
+   */
+  async findFiltered(filter: TasksFilter, page: number, perPage: number): Promise<[Task[], number]> {
+    const where: Record<string, unknown> = {}
+    if (filter.state)      where.state      = filter.state
+    if (filter.priority)   where.priority   = filter.priority
+    if (filter.assigneeId) where.assigneeId = filter.assigneeId
+    if (filter.search)     where.title      = ILike(`%${filter.search}%`)
+
+    return this.repo.findAndCount({
+      where,
+      order: { createdAt: 'DESC' },
+      skip:  (page - 1) * perPage,
+      take:  perPage,
+    })
   }
 
-  findById(id: string): Task | undefined {
-    return this.store.get(id)
+  findById(id: string): Promise<Task | null> {
+    return this.repo.findOne({ where: { id } })
   }
 
-  insert(draft: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>): Task {
-    const now = new Date().toISOString()
-    const task: Task = { ...draft, id: uuid(), createdAt: now, updatedAt: now }
-    this.store.set(task.id, task)
-    return task
+  insert(draft: Partial<Task>): Promise<Task> {
+    return this.repo.save(this.repo.create(draft))
   }
 
-  update(id: string, patch: Partial<Omit<Task, 'id' | 'createdAt' | 'createdById'>>): Task | undefined {
-    const current = this.store.get(id)
-    if (!current) return undefined
-
-    const next: Task = {
-      ...current,
-      ...patch,
-      id:          current.id,
-      createdAt:   current.createdAt,
-      createdById: current.createdById,
-      updatedAt:   new Date().toISOString(),
-    }
-    this.store.set(id, next)
-    return next
+  async update(id: string, patch: Partial<Task>): Promise<Task | null> {
+    await this.repo.update(id, patch)
+    return this.findById(id)
   }
 
-  remove(id: string): boolean {
-    return this.store.delete(id)
+  async remove(id: string): Promise<boolean> {
+    const r = await this.repo.delete(id)
+    return (r.affected ?? 0) > 0
   }
 
-  clear(): void {
-    this.store.clear()
+  async clear(): Promise<void> {
+    await this.repo.query('TRUNCATE TABLE tasks RESTART IDENTITY CASCADE')
   }
 
-  size(): number {
-    return this.store.size
+  count(): Promise<number> {
+    return this.repo.count()
+  }
+
+  // ── Aggregates used by StatsService ─────────────────────────
+  countByState(): Promise<{ state: TaskState; count: string }[]> {
+    return this.repo.createQueryBuilder('t')
+      .select('t.state', 'state')
+      .addSelect('COUNT(*)', 'count')
+      .groupBy('t.state')
+      .getRawMany()
+  }
+
+  // Destination: together-backend/together-backend/src/tasks/tasks.repository.ts
+// ADD this method to the existing TasksRepository class (next to countByState etc.):
+
+countSince(since: Date): Promise<number> {
+  return this.repo.createQueryBuilder('t')
+    .where('t.createdAt > :since', { since: since.toISOString() })
+    .getCount()
+}
+
+async getUserTaskStats(userId: string): Promise<{
+  total: number; done: number; inProgress: number; todo: number; cancelled: number; overdue: number
+}> {
+  const rows = await this.repo.query(
+    'SELECT * FROM get_user_task_stats($1)', [userId],
+  )
+  const r = rows[0] ?? {}
+  return {
+    total:      Number(r.total_tasks       ?? 0),
+    done:       Number(r.done_tasks        ?? 0),
+    inProgress: Number(r.in_progress_tasks ?? 0),
+    todo:       Number(r.todo_tasks        ?? 0),
+    cancelled:  Number(r.cancelled_tasks   ?? 0),
+    overdue:    Number(r.overdue_tasks     ?? 0),
   }
 }
 
-const iso = (s: string) => new Date(s).toISOString()
+  countByPriority(): Promise<{ priority: Priority; count: string }[]> {
+    return this.repo.createQueryBuilder('t')
+      .select('t.priority', 'priority')
+      .addSelect('COUNT(*)', 'count')
+      .groupBy('t.priority')
+      .getRawMany()
+  }
 
-const SEED_TASKS: Task[] = [
-  { id: 't1', title: 'Book restaurant for anniversary 💍', description: 'Reserve table at Maison, confirm vegetarian menu option and request window table.', assigneeId: 'u1', createdById: 'u1', priority: Priority.HIGH,   state: TaskState.TODO,        dueDate: '2026-04-12', createdAt: iso('2026-03-08'), updatedAt: iso('2026-03-08') },
-  { id: 't2', title: 'Renew car insurance',                description: 'Compare quotes on Generali and Allianz before the renewal deadline.',                assigneeId: 'u2', createdById: 'u1', priority: Priority.HIGH,   state: TaskState.IN_PROGRESS, dueDate: '2026-04-20', createdAt: iso('2026-03-05'), updatedAt: iso('2026-03-10') },
-  { id: 't3', title: 'Plan Lisbon trip itinerary ✈️',       description: 'Day-by-day plan for the April long weekend trip.',                                   assigneeId: 'u1', createdById: 'u1', priority: Priority.MEDIUM, state: TaskState.TODO,        dueDate: '2026-04-02', createdAt: iso('2026-03-01'), updatedAt: iso('2026-03-01') },
-  { id: 't4', title: 'Buy birthday gift for Mum',          description: 'She mentioned wanting a cookbook. Check Humanitas or order online.',                 assigneeId: 'u1', createdById: 'u2', priority: Priority.MEDIUM, state: TaskState.TODO,        dueDate: '2026-04-22', createdAt: iso('2026-03-12'), updatedAt: iso('2026-03-12') },
-  { id: 't5', title: 'Update apartment rental contract',   description: 'Send signed copy to landlord by end of month.',                                      assigneeId: 'u2', createdById: 'u1', priority: Priority.HIGH,   state: TaskState.DONE,        dueDate: '2026-03-31', createdAt: iso('2026-03-01'), updatedAt: iso('2026-03-28') },
-  { id: 't6', title: 'Weekly grocery run 🛒',              description: "Don't forget oat milk and coffee pods.",                                              assigneeId: 'u1', createdById: 'u1', priority: Priority.LOW,    state: TaskState.DONE,        dueDate: '2026-03-15', createdAt: iso('2026-03-13'), updatedAt: iso('2026-03-15') },
-  { id: 't7', title: 'Set up emergency savings goal',      description: 'Open joint savings account, first transfer by Mar 30.',                              assigneeId: 'u2', createdById: 'u2', priority: Priority.MEDIUM, state: TaskState.TODO,        dueDate: '2026-03-30', createdAt: iso('2026-03-01'), updatedAt: iso('2026-03-01') },
-  { id: 't8', title: 'Gym membership renewal',             description: 'Check if the Together discount is still valid.',                                      assigneeId: 'u2', createdById: 'u2', priority: Priority.LOW,    state: TaskState.IN_PROGRESS, dueDate: '2026-04-15', createdAt: iso('2026-03-10'), updatedAt: iso('2026-03-10') },
-  { id: 't9', title: 'Fix the bathroom tap',               description: 'Call the plumber or check if it can be DIY fixed.',                                  assigneeId: 'u2', createdById: 'u1', priority: Priority.MEDIUM, state: TaskState.CANCELLED,   dueDate: null,         createdAt: iso('2026-03-02'), updatedAt: iso('2026-03-05') },
-]
+  countByAssignee(): Promise<{ userId: string; total: string; done: string }[]> {
+    return this.repo.createQueryBuilder('t')
+      .select('t.assigneeId', 'userId')
+      .addSelect('COUNT(*)', 'total')
+      .addSelect(`COUNT(*) FILTER (WHERE t.state = 'done')`, 'done')
+      .groupBy('t.assigneeId')
+      .getRawMany()
+  }
+
+  async countOverdue(): Promise<number> {
+    const today = new Date().toISOString().slice(0, 10)
+    return this.repo.createQueryBuilder('t')
+      .where('t.dueDate IS NOT NULL')
+      .andWhere('t.dueDate < :today', { today })
+      .andWhere(`t.state NOT IN ('done', 'cancelled')`)
+      .getCount()
+  }
+}
