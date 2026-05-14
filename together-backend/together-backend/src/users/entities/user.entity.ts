@@ -1,8 +1,6 @@
-// Destination: together-backend/together-backend/src/users/entities/user.entity.ts
-// REPLACE — adds the M:M relation to Role. Note: User.role (owner/partner)
-// stays as it is — that's a workspace-identity field, separate from the
-// authorization role. They mean different things and live in different
-// tables. Comments inline.
+// Destination: together-backend/src/users/entities/user.entity.ts
+// REPLACE — adds security PIN (3rd factor) and feature flags. Keeps
+// the M:M Role relation introduced in Assignment 3.
 import {
   Column, CreateDateColumn, Entity, Index, JoinTable,
   ManyToMany, OneToMany, PrimaryGeneratedColumn,
@@ -15,24 +13,29 @@ export type UserRole = 'owner' | 'partner'
 
 @Entity('users')
 export class User {
-  @PrimaryGeneratedColumn('uuid')          id!: string
+  @PrimaryGeneratedColumn('uuid')           id!: string
 
   @Index({ unique: true })
   @Column({ type: 'varchar', length: 255 }) email!: string
 
   @Column({ type: 'varchar', length: 255, default: '' }) passwordHash!: string
 
+  // Security PIN — bcrypt-hashed 4-6 digit code that is the 3rd factor.
+  // Empty string => 3FA not configured for this user (still 2FA-protected).
+  @Column({ type: 'varchar', length: 255, default: '' }) securityPinHash!: string
+
+  // Feature flags. Default: 2FA on (email OTP), 3FA off (PIN optional).
+  @Column({ type: 'boolean', default: true })  twoFactorEnabled!: boolean
+  @Column({ type: 'boolean', default: false }) threeFactorEnabled!: boolean
+
   @Column({ type: 'varchar', length: 100 }) name!: string
 
-  // Workspace identity: who is this person to the couple. NOT a permission.
   @Column({ type: 'varchar', length: 20 })  role!: UserRole
-
   @Column({ type: 'varchar', length: 7 })   avatarColor!: string
   @Column({ type: 'varchar', length: 4 })   initials!: string
 
   @CreateDateColumn({ type: 'timestamptz' }) createdAt!: Date
 
-  // Authorization roles (admin / user). Separate from `role` above.
   @ManyToMany(() => Role, r => r.users, { cascade: ['insert', 'update'] })
   @JoinTable({
     name: 'user_roles',

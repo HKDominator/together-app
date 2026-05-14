@@ -57,8 +57,8 @@ export default function LoginPage() {
           {/* Demo hint so the grader can copy-paste credentials */}
           <div className="mb-6 p-3 rounded-lg bg-gray-50 text-xs text-gray-600 leading-relaxed">
             <strong>Demo accounts:</strong><br />
-            ana@together.dev / ana123 (admin)<br />
-            dan@together.dev / dan123 (user)
+            ana@together.dev / anaana123 (admin)<br />
+            dan@together.dev / dandan123 (user)
           </div>
 
           {serverError && (
