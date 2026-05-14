@@ -21,13 +21,14 @@ import { Task } from './entities/task.entity'
  *
  * Origin is pinned to the Next.js dev server; same pair as in main.ts.
  */
+
+const wsOrigins = (process.env.CLIENT_ORIGIN
+  ?? 'http://localhost:3000,http://127.0.0.1:3000')
+  .split(',').map(s => s.trim()).filter(Boolean)
+
+  
 @Injectable()
-@WebSocketGateway({
-  cors: {
-    origin:      ['http://localhost:3000', 'http://127.0.0.1:3000'],
-    credentials: true,
-  },
-})
+@WebSocketGateway({ cors: { origin: wsOrigins, credentials: true } })
 export class TasksGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private readonly log = new Logger(TasksGateway.name)
 

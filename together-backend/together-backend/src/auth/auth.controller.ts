@@ -1,43 +1,158 @@
-// Destination: together-backend/together-backend/src/auth/auth.controller.ts
+// Destination: together-backend/src/auth/auth.controller.ts
+// REPLACE — registration, multi-step login, refresh, logout, /me.
+// Sessions list + revoke endpoints live in sessions.controller.ts (Silver).
 import {
   Body, Controller, Get, HttpCode, HttpStatus, Post, Req, Res, UseGuards,
 } from '@nestjs/common'
 import type { Request, Response } from 'express'
 import { AuthService } from './auth.service'
 import { LoginDto } from './dto/login.dto'
-import { AuthGuard, SESSION_COOKIE } from './guards/auth.guard'
+import { RegisterDto } from './dto/register.dto'
+import { VerifyOtpDto } from './dto/verify-otp.dto'
+import { VerifyPinDto } from './dto/verify-pin.dto'
+import { AuthGuard, ACCESS_COOKIE, REFRESH_COOKIE } from './guards/auth.guard'
 import { CurrentUser } from './decorators/current-user.decorator'
 import type { User } from '../users/entities/user.entity'
+import { JwtUtil } from './jwt-util.service'
+import { MailerService } from './mailer.service'
 
-const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000
+const meta = (req: Request) => ({
+  ip:        (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()
+              || req.socket.remoteAddress
+              || '',
+  userAgent: (req.headers['user-agent'] as string) || '',
+})
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly auth: AuthService) {}
+  constructor(
+    private readonly auth: AuthService,
+    private readonly jwtUtil: JwtUtil,
+    private readonly mailer: MailerService,
+  ) {}
 
-  @Post('login')
-  @HttpCode(HttpStatus.OK)
-  async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
-    const { user, result } = await this.auth.login(dto.email, dto.password)
-    // Cookie holds the user's UUID. Plain — see assignment note about
-    // not requiring tokens or encryption for this iteration.
-    res.cookie(SESSION_COOKIE, user.id, {
-      httpOnly: true,
-      sameSite: 'lax',
-      maxAge:   ONE_WEEK_MS,
+  // ── POST /auth/register ──────────────────────────────────────────
+  @Post('register')
+  @HttpCode(HttpStatus.CREATED)
+  async register(
+    @Body() dto: RegisterDto,
+    @Req()  req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.auth.register({
+      email:    dto.email,
+      password: dto.password,
+      name:     dto.name,
+      pin:      dto.securityPin,
     })
+    this.setAuthCookies(res, result.accessToken, result.refreshToken)
     return result
   }
 
-  @Post('logout')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  logout(@Res({ passthrough: true }) res: Response) {
-    res.clearCookie(SESSION_COOKIE)
+  // ── POST /auth/login (step 1: password) ──────────────────────────
+  @Post('login')
+  @HttpCode(HttpStatus.OK)
+  async login(
+    @Body() dto: LoginDto,
+    @Req()  req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const stage = await this.auth.beginLogin(dto.email, dto.password, meta(req))
+    if (stage.stage === 'done') {
+      this.setAuthCookies(res, stage.result.accessToken, stage.result.refreshToken)
+    }
+    return stage
   }
 
+  // ── POST /auth/login/otp (step 2) ────────────────────────────────
+  @Post('login/otp')
+  @HttpCode(HttpStatus.OK)
+  async verifyOtp(
+    @Body() dto: VerifyOtpDto,
+    @Req()  req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const stage = await this.auth.verifyOtp(dto.attemptId, dto.code, meta(req))
+    if (stage.stage === 'done') {
+      this.setAuthCookies(res, stage.result.accessToken, stage.result.refreshToken)
+    }
+    return stage
+  }
+
+  // ── POST /auth/login/pin (step 3) ────────────────────────────────
+  @Post('login/pin')
+  @HttpCode(HttpStatus.OK)
+  async verifyPin(
+    @Body() dto: VerifyPinDto,
+    @Req()  req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.auth.verifyPin(dto.attemptId, dto.pin, meta(req))
+    this.setAuthCookies(res, result.accessToken, result.refreshToken)
+    return { stage: 'done', result }
+  }
+
+  // ── POST /auth/refresh — get a new access token ──────────────────
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  async refresh(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const refreshToken = req.cookies?.[REFRESH_COOKIE]
+      ?? req.body?.refreshToken
+    if (!refreshToken) {
+      res.status(401)
+      return { message: 'No refresh token' }
+    }
+    const result = await this.auth.refresh(refreshToken)
+    this.setAuthCookies(res, result.accessToken, result.refreshToken)
+    return result
+  }
+
+  // ── POST /auth/logout ─────────────────────────────────────────────
+  @Post('logout')
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const session = (req as Request & { session?: { id: string } }).session
+    if (session) await this.auth.logout(session.id)
+    res.clearCookie(ACCESS_COOKIE)
+    res.clearCookie(REFRESH_COOKIE)
+  }
+
+  // ── GET /auth/me ──────────────────────────────────────────────────
   @Get('me')
   @UseGuards(AuthGuard)
   me(@CurrentUser() user: User) {
-    return this.auth.toResult(user)
+    return {
+      user:        this.auth.toUserPayload(user),
+      roles:       (user.roles ?? []).map(r => r.name),
+      permissions: this.auth.permissionsOf(user),
+    }
+  }
+
+  // ── GET /auth/dev/inbox — lab-only OTP retrieval ────────────────
+  // Only available when MAIL_DEV=true. Used by tests so they don't need
+  // to scrape stdout for the OTP.
+  @Get('dev/inbox')
+  devInbox(@Req() req: Request) {
+    const email = (req.query.email as string) || ''
+    if (!email) return { message: 'pass ?email=foo@bar' }
+    return this.mailer.peek(email) ?? { empty: true }
+  }
+
+  // ── Cookie helper ────────────────────────────────────────────────
+  private setAuthCookies(res: Response, accessToken: string, refreshToken: string) {
+    res.cookie(ACCESS_COOKIE, accessToken, {
+      httpOnly: true, sameSite: 'lax',
+      secure:   process.env.HTTPS_KEY ? true : false,
+      maxAge:   this.jwtUtil.accessTtl * 1000,
+    })
+    res.cookie(REFRESH_COOKIE, refreshToken, {
+      httpOnly: true, sameSite: 'lax',
+      secure:   process.env.HTTPS_KEY ? true : false,
+      maxAge:   this.jwtUtil.refreshTtl * 1000,
+    })
   }
 }
