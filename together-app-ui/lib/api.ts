@@ -55,25 +55,35 @@ async function req<T>(
   method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
   path:   string,
   body?:  unknown,
+  retry = true,
 ): Promise<T> {
   let res: Response
   try {
     res = await fetch(`${API_URL}${path}`, {
       method,
-      credentials: 'include',                      // ← NEW
+      credentials: 'include',
       headers: body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
       body:    body !== undefined ? JSON.stringify(body) : undefined,
     })
-  } catch {
-    throw new NetworkError()
+  } catch { throw new NetworkError() }
+
+  if (res.status === 401 && retry) {
+    try {
+      const r = await fetch(`${API_URL}/auth/refresh`, { method: 'POST', credentials: 'include' })
+      if (r.ok) return req<T>(method, path, body, false)
+    } catch { /* fall through */ }
+    // Refresh failed → session is dead. Tell the world.
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('auth:unauthorized'))
+    }
   }
 
   if (res.status === 204) return undefined as T
   if (!res.ok) {
     let detail = res.statusText
     try {
-      const body = await res.json()
-      detail = Array.isArray(body.message) ? body.message.join('; ') : (body.message ?? detail)
+      const b = await res.json()
+      detail = Array.isArray(b.message) ? b.message.join('; ') : (b.message ?? detail)
     } catch { /* not JSON */ }
     throw new ApiError(res.status, detail)
   }

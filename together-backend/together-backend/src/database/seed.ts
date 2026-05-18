@@ -77,22 +77,29 @@ async function run() {
   const hashed = (pw: string) => bcrypt.hash(pw, 10)
 
   const ana = await userRepo.save(userRepo.create({
-    email:        'ana@together.dev',
-    passwordHash: await hashed('anaana123'),
-    name:         'Ana Pop',
-    role:         'owner',
-    avatarColor:  '#C0392B',
-    initials:     'AP',
-    roles:        [roles.admin],
+    email:               'ana@together.dev',
+    passwordHash:        await bcrypt.hash('anaana123', 10),
+    securityPinHash:     await bcrypt.hash('1234', 10),
+    twoFactorEnabled:    true,
+    threeFactorEnabled:  true,
+    name:                'Ana Pop',
+    role:                'owner',
+    avatarColor:         '#C0392B',
+    initials:            'AP',
+    roles:               [roles.admin],
   }))
+
   const dan = await userRepo.save(userRepo.create({
-    email:        'dan@together.dev',
-    passwordHash: await hashed('dandan123'),
-    name:         'Dan Ionescu',
-    role:         'partner',
-    avatarColor:  '#2980B9',
-    initials:     'DI',
-    roles:        [roles.user],
+    email:               'dan@together.dev',
+    passwordHash:        await bcrypt.hash('dandan123', 10),
+    securityPinHash:     '',
+    twoFactorEnabled:    true,
+    threeFactorEnabled:  false,
+    name:                'Dan Ionescu',
+    role:                'partner',
+    avatarColor:         '#2980B9',
+    initials:            'DI',
+    roles:               [roles.user],
   }))
 
   // ── Tasks + comments ─────────────────────────────────────────
@@ -122,8 +129,8 @@ async function run() {
   console.log(`✅ Seeded:`)
   console.log(`   ${ALL_PERMISSIONS.length} permissions, 2 roles (admin, user)`)
   console.log(`   2 users:`)
-  console.log(`     • ana@together.dev / anaana123  (admin)`)
-  console.log(`     • dan@together.dev / dandan123  (user)`)
+  console.log(`     • ana@together.dev / anaana123 / PIN 1234   (admin, 3FA on)`)
+  console.log(`     • dan@together.dev / dandan123              (user, 2FA only)`)
   console.log(`   3 tasks, 3 comments`)
   await app.close()
 }
