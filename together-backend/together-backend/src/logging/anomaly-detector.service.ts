@@ -1,109 +1,131 @@
-// Destination: together-backend/together-backend/src/logs/anomaly-detector.service.ts
-// Heuristics-based. Three rules — easy to extend:
-//   1. Burst rate     : > 60 requests in the last 60s
-//   2. Delete spree   : > 10 DELETEs in the last 5 minutes
-//   3. Repeated 4xx   : > 20 client errors in the last 5 minutes (probing)
+// Destination: together-backend/together-backend/src/logging/anomaly-detector.service.ts
+// REPLACE THE WHOLE FILE.
 //
-// On a hit, upsert into observation_list with a reason and bumped score.
-import { Injectable, Logger } from '@nestjs/common'
+// CHANGES FROM PRIOR VERSION:
+//   - flag() is now PUBLIC (was private). The new AiAnomalyService
+//     calls into it directly, reusing the same observation_list and
+//     the same admin UI.
+//   - evidence type widened to Record<string, unknown> so AI metadata
+//     (signal, rationale, model name, full feature vector) fits
+//     alongside the heuristic counters.
+//   - When an observation already exists and is unresolved, we MERGE
+//     evidence ({...existing, ...new}) rather than overwrite. That way
+//     a burst-then-AI flag preserves both sets of context.
+import { Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { Repository, MoreThan } from 'typeorm'
 import { ActionLog } from './entities/action-log.entity'
 import { Observation } from './entities/observation.entity'
-import { LogsService } from './logs.service'
 import { User } from '../users/entities/user.entity'
 
-const ONE_MIN_MS  = 60_000
-const FIVE_MIN_MS = 5 * ONE_MIN_MS
-
-const RULES = {
-  BURST_THRESHOLD:    60,   // req / minute
-  DELETE_THRESHOLD:   10,   // deletes / 5 min
-  ERROR_THRESHOLD:    20,   // 4xx / 5 min
-}
+// Heuristic thresholds. Tuned so a normal Ana/Dan session never trips.
+const BURST_PER_MIN      = 60
+const DELETE_PER_5MIN    = 10
+const ERROR4XX_PER_5MIN  = 20
 
 @Injectable()
 export class AnomalyDetectorService {
   private readonly log = new Logger(AnomalyDetectorService.name)
 
   constructor(
-    private readonly logs:        LogsService,
-    @InjectRepository(Observation) private readonly observations: Repository<Observation>,
-    @InjectRepository(ActionLog)   private readonly actionLogs:   Repository<ActionLog>,
-    @InjectRepository(User)        private readonly users:        Repository<User>,
+    @InjectRepository(ActionLog)   private readonly logs: Repository<ActionLog>,
+    @InjectRepository(Observation) private readonly obs:  Repository<Observation>,
+    @InjectRepository(User)        private readonly users:Repository<User>,
   ) {}
 
-  /** Called after each insert by the interceptor. Cheap — just three counts. */
-  async check(latest: ActionLog): Promise<void> {
-    if (!latest.userId) return
-
-    const reasons: string[] = []
-    const evidence: Record<string, number> = {}
-
-    const burst = await this.logs.countSince(latest.userId, ONE_MIN_MS)
-    evidence.requestsLastMin = burst
-    if (burst > RULES.BURST_THRESHOLD) {
-      reasons.push(`Burst rate: ${burst} requests in last 60s`)
-    }
-
-    if (latest.method === 'DELETE') {
-      const deletes = await this.actionLogs.createQueryBuilder('l')
-        .where('l.userId = :u', { u: latest.userId })
-        .andWhere('l.method = :m', { m: 'DELETE' })
-        .andWhere('l.createdAt > :since', { since: new Date(Date.now() - FIVE_MIN_MS) })
-        .getCount()
-      evidence.deletesLast5Min = deletes
-      if (deletes > RULES.DELETE_THRESHOLD) {
-        reasons.push(`Delete spree: ${deletes} deletes in last 5 min`)
-      }
-    }
-
-    if (latest.statusCode >= 400 && latest.statusCode < 500) {
-      const errors = await this.actionLogs.createQueryBuilder('l')
-        .where('l.userId = :u', { u: latest.userId })
-        .andWhere('l.statusCode >= 400 AND l.statusCode < 500')
-        .andWhere('l.createdAt > :since', { since: new Date(Date.now() - FIVE_MIN_MS) })
-        .getCount()
-      evidence.clientErrorsLast5Min = errors
-      if (errors > RULES.ERROR_THRESHOLD) {
-        reasons.push(`Probing: ${errors} 4xx responses in last 5 min`)
-      }
-    }
-
-    if (reasons.length === 0) return
-    await this.flag(latest.userId, reasons.join('; '), evidence)
-  }
-
-  private async flag(userId: string, reason: string, evidence: Record<string, number>) {
+  /**
+   * Called by the LoggingInterceptor on every authenticated request.
+   * Runs three cheap heuristics. Each can independently flag a user.
+   */
+  async observe(userId: string): Promise<void> {
     const user = await this.users.findOne({ where: { id: userId } })
     if (!user) return
 
-    const existing = await this.observations.findOne({ where: { userId } })
-    if (existing && !existing.resolved) {
-      existing.score   += 1
-      existing.reason   = reason
-      existing.evidence = evidence
-      await this.observations.save(existing)
-    } else {
-      await this.observations.save(this.observations.create({
-        userId,
-        userEmail: user.email,
-        userName:  user.name,
-        reason, evidence, score: 1, resolved: false,
-      }))
-    }
-    this.log.warn(`🚨 flagged user ${user.email}: ${reason}`)
+    await Promise.all([
+      this.ruleBurst(user),
+      this.ruleDeleteSpree(user),
+      this.ruleProbing(user),
+    ])
   }
 
-  // Admin actions
-  async listOpen() {
-    return this.observations.find({ where: { resolved: false }, order: { flaggedAt: 'DESC' } })
+  // ── Rule 1: burst rate ───────────────────────────────────────
+  private async ruleBurst(u: User): Promise<void> {
+    const since = new Date(Date.now() - 60_000)
+    const n = await this.logs.count({
+      where: { userId: u.id, createdAt: MoreThan(since) },
+    })
+    if (n >= BURST_PER_MIN) {
+      await this.flag(u, `Burst: ${n} requests in 60s`, { burstPerMin: n })
+    }
   }
-  async listAll() {
-    return this.observations.find({ order: { flaggedAt: 'DESC' } })
+
+  // ── Rule 2: delete spree ─────────────────────────────────────
+  private async ruleDeleteSpree(u: User): Promise<void> {
+    const since = new Date(Date.now() - 5 * 60_000)
+    const n = await this.logs.count({
+      where: { userId: u.id, method: 'DELETE', createdAt: MoreThan(since) },
+    })
+    if (n >= DELETE_PER_5MIN) {
+      await this.flag(u, `Delete spree: ${n} DELETEs in 5min`, { deletesPer5min: n })
+    }
   }
-  async resolve(id: string) {
-    await this.observations.update(id, { resolved: true })
+
+  // ── Rule 3: 4xx probing ──────────────────────────────────────
+  private async ruleProbing(u: User): Promise<void> {
+    const since = new Date(Date.now() - 5 * 60_000)
+    // Inline query — counts only client errors.
+    const rows = await this.logs.createQueryBuilder('l')
+      .where('l."userId" = :uid', { uid: u.id })
+      .andWhere('l."createdAt" >= :since', { since })
+      .andWhere('l."statusCode" >= 400 AND l."statusCode" < 500')
+      .getCount()
+    if (rows >= ERROR4XX_PER_5MIN) {
+      await this.flag(u, `Probing: ${rows} 4xx responses in 5min`, { errors4xxPer5min: rows })
+    }
+  }
+
+  /**
+   * Upsert into observation_list. Public so AiAnomalyService can call
+   * it with a richer evidence payload. We accept a minimal user shape
+   * (not the full User entity) because the AI service already has
+   * just the id/email/name when calling.
+   */
+  async flag(
+    user: { id: string; email: string; name: string } | User,
+    reason: string,
+    evidence: Record<string, unknown>,
+  ): Promise<void> {
+    const existing = await this.obs.findOne({ where: { userId: user.id, resolved: false } })
+    if (existing) {
+      existing.score    += 1
+      existing.reason    = reason     // keep the most recent reason on top
+      existing.evidence  = { ...(existing.evidence ?? {}), ...evidence }
+      await this.obs.save(existing)
+      return
+    }
+    await this.obs.save(this.obs.create({
+      userId:    user.id,
+      userEmail: user.email,
+      userName:  user.name,
+      reason,
+      score:     1,
+      resolved:  false,
+      evidence,
+    }))
+  }
+
+  // ── Admin queries ────────────────────────────────────────────
+  listOpen() {
+    return this.obs.find({ where: { resolved: false }, order: { score: 'DESC' } })
+  }
+  listAll() {
+    return this.obs.find({ order: { flaggedAt: 'DESC' } })
+  }
+  async resolve(id: string): Promise<{ ok: true }> {
+    const o = await this.obs.findOne({ where: { id } })
+    if (!o) throw new NotFoundException(`Observation ${id} not found`)
+    o.resolved = true
+    await this.obs.save(o)
     return { ok: true }
   }
 }

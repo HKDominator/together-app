@@ -8,6 +8,7 @@ import { DataSource } from 'typeorm'
 import cookieParser from 'cookie-parser'
 import request from 'supertest'
 import { AppModule } from '../src/app.module'
+import './setup-env'   // Loads .env.test for jest runs, see that file for details
 
 describe('Auth (e2e)', () => {
   let app: INestApplication

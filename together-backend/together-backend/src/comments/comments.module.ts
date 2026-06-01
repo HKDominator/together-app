@@ -7,7 +7,7 @@ import { CommentsRepository } from './comments.repository'
 import { Comment } from './entities/comment.entity'
 import { TasksModule } from '../tasks/tasks.module'
 import { UsersModule } from '../users/users.module'
-import { AuthModule } from 'src/auth/auth.module'
+import { AuthModule } from '../auth/auth.module'
 
 @Module({
   imports: [

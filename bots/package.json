@@ -1,0 +1,20 @@
+{
+  "name": "together-attack-bots",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Playwright-driven bot swarm for Assignment 4 Gold — exercises the anomaly detector",
+  "scripts": {
+    "install:browsers": "playwright install chromium",
+    "swarm":      "ts-node swarm.ts",
+    "swarm:demo": "ts-node swarm.ts --normal=3 --scraper=2 --vandal=1 --probe=2 --duration=120",
+    "swarm:soft": "ts-node swarm.ts --normal=5 --scraper=0 --vandal=0 --probe=0 --duration=60",
+    "swarm:burst":"ts-node swarm.ts --normal=0 --scraper=3 --vandal=0 --probe=0 --duration=60"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.47.0",
+    "@faker-js/faker":  "^9.0.0",
+    "ts-node":          "^10.9.0",
+    "typescript":       "^5.5.0",
+    "@types/node":      "^20.0.0"
+  }
+}

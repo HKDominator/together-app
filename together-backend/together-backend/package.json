@@ -14,11 +14,12 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "seed": "ts-node -r tsconfig-paths/register src/database/seed.ts",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "seed:big": "ts-node src/database/seed-big.ts"
   },
   "dependencies": {
     "@apollo/server": "^4.10.0",
-    "@faker-js/faker": "^8.4.0",
+    "@faker-js/faker": "^8.4.1",
     "@nestjs/apollo": "^12.1.0",
     "@nestjs/common": "^10.3.0",
     "@nestjs/config": "^4.0.4",
@@ -28,6 +29,7 @@
     "@nestjs/mongoose": "^11.0.4",
     "@nestjs/platform-express": "^10.3.0",
     "@nestjs/platform-socket.io": "^10.3.0",
+    "@nestjs/schedule": "^6.1.3",
     "@nestjs/typeorm": "^11.0.1",
     "@nestjs/websockets": "^10.3.0",
     "bcrypt": "^6.0.0",
