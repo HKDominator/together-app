@@ -21,6 +21,7 @@ import { runSqlBootstrap } from './sql-bootstrap'
         synchronize:      cfg.get<string>('DB_SYNC', 'true') === 'true',
         logging:          cfg.get<string>('DB_LOGGING', 'false') === 'true',
         autoLoadEntities: true,
+        ssl: cfg.get<string>('DB_SSL', 'false') === 'true' ? { rejectUnauthorized: false } : false,
       }),
     }),
   ],

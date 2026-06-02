@@ -144,15 +144,22 @@ export class AuthController {
 
   // ── Cookie helper ────────────────────────────────────────────────
   private setAuthCookies(res: Response, accessToken: string, refreshToken: string) {
+    // Cross-site (Vercel frontend ↔ Render backend on different domains)
+    // requires SameSite=None, which browsers only accept with Secure=true.
+    // Locally we stay on Lax + insecure so plain-HTTP dev still works.
+    const crossSite = process.env.COOKIE_CROSS_SITE === 'true'
+    const common = {
+      httpOnly: true as const,
+      sameSite: (crossSite ? 'none' : 'lax') as 'none' | 'lax',
+      secure:   crossSite || !!process.env.HTTPS_KEY,
+    }
     res.cookie(ACCESS_COOKIE, accessToken, {
-      httpOnly: true, sameSite: 'lax',
-      secure:   process.env.HTTPS_KEY ? true : false,
-      maxAge:   this.jwtUtil.accessTtl * 1000,
+      ...common,
+      maxAge: this.jwtUtil.accessTtl * 1000,
     })
     res.cookie(REFRESH_COOKIE, refreshToken, {
-      httpOnly: true, sameSite: 'lax',
-      secure:   process.env.HTTPS_KEY ? true : false,
-      maxAge:   this.jwtUtil.refreshTtl * 1000,
+      ...common,
+      maxAge: this.jwtUtil.refreshTtl * 1000,
     })
   }
 }

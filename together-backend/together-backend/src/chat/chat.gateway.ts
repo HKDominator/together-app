@@ -26,7 +26,12 @@ interface IncomingMessage {
 
 @WebSocketGateway({
   cors: {
-    origin:      ['http://localhost:3000', 'http://127.0.0.1:3000'],
+    // Read from CLIENT_ORIGIN (same var main.ts uses) so the allowed
+    // origins follow the deployment. Falls back to localhost for dev.
+    origin: (process.env.CLIENT_ORIGIN ?? 'http://localhost:3000,http://127.0.0.1:3000')
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean),
     credentials: true,
   },
 })
