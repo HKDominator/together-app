@@ -1,0 +1,232 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-09T00:00:00Z",
+  "title": "Design System: Together",
+  "extensions": {
+    "colorMeta": {
+      "cr": {
+        "role": "primary",
+        "displayName": "Pompeii Crimson",
+        "canonical": "oklch(50% 0.19 28)",
+        "tonalRamp": ["#290907", "#4D1411", "#791E18", "#9B2D22", "#C0392B", "#D46B5F", "#E8A09A", "#FAF0EE"]
+      },
+      "cr-deep": {
+        "role": "primary-deep",
+        "displayName": "Pompeii Deep",
+        "canonical": "oklch(43% 0.19 28)",
+        "tonalRamp": ["#1A0503", "#360C0A", "#561614", "#791E18", "#9B2D22", "#C0392B", "#D46B5F", "#E8A09A"]
+      },
+      "cr-pale": {
+        "role": "primary-tint",
+        "displayName": "Crimson Haze",
+        "canonical": "oklch(96% 0.025 28)",
+        "tonalRamp": ["#3A0E0B", "#6A1A15", "#9B2D22", "#C0392B", "#D46B5F", "#EAA8A2", "#F5D5D1", "#FAF0EE"]
+      },
+      "sl": {
+        "role": "neutral-dark",
+        "displayName": "Slate Void",
+        "canonical": "oklch(22% 0.04 241)",
+        "tonalRamp": ["#040C15", "#0D1C2B", "#1A2535", "#2C3E52", "#4A617A", "#6B8298", "#93AFBF", "#D3DDE3"]
+      },
+      "sl-muted": {
+        "role": "neutral-mid",
+        "displayName": "Slate Muted",
+        "canonical": "oklch(44% 0.04 241)",
+        "tonalRamp": ["#0D1C2B", "#1A2535", "#2C3E52", "#4D6A80", "#6B8298", "#8FA5B8", "#BDD0DB", "#E0E9EF"]
+      },
+      "sl-dim": {
+        "role": "neutral-light",
+        "displayName": "Slate Dim",
+        "canonical": "oklch(68% 0.03 241)",
+        "tonalRamp": ["#1A2535", "#2C3E52", "#4D6A80", "#6B8298", "#8FA5B8", "#B0C5D3", "#D0E0EA", "#EEF4F7"]
+      },
+      "cm": {
+        "role": "warm-surface",
+        "displayName": "Cardamom",
+        "canonical": "oklch(93% 0.018 40)",
+        "tonalRamp": ["#3A1E14", "#5D3025", "#87604F", "#AA8A7A", "#C0A898", "#D4C0B5", "#E5D8D0", "#F2EAE3"]
+      },
+      "cm-pale": {
+        "role": "warm-surface-tint",
+        "displayName": "Cardamom Pale",
+        "canonical": "oklch(97% 0.008 40)",
+        "tonalRamp": ["#5D3025", "#87604F", "#AA8A7A", "#C0A898", "#D4C0B5", "#E5D8D0", "#F2EAE3", "#FAF8F6"]
+      },
+      "surface": {
+        "role": "surface",
+        "displayName": "Surface White",
+        "canonical": "oklch(100% 0 0)",
+        "tonalRamp": ["#E5E7EB", "#F3F4F6", "#F9FAFB", "#FFFFFF", "#FFFFFF", "#FFFFFF", "#FFFFFF", "#FFFFFF"]
+      },
+      "bg": {
+        "role": "background",
+        "displayName": "Shell Gray",
+        "canonical": "oklch(96.5% 0.002 50)",
+        "tonalRamp": ["#D1D5DC", "#E5E7EB", "#F3F4F6", "#F5F5F4", "#F9FAFB", "#FAFAF9", "#FDFDFC", "#FFFFFF"]
+      },
+      "success": {
+        "role": "semantic-success",
+        "displayName": "Go Green",
+        "canonical": "oklch(62% 0.18 155)",
+        "tonalRamp": ["#014022", "#016630", "#008138", "#00A544", "#27AE60", "#4FC87F", "#8CDBA8", "#DCFCE7"]
+      },
+      "info": {
+        "role": "semantic-info",
+        "displayName": "Info Blue",
+        "canonical": "oklch(55% 0.14 241)",
+        "tonalRamp": ["#0A2A48", "#134068", "#1B568A", "#2470AB", "#2980B9", "#5EA3CF", "#9CC8E5", "#DBEAFE"]
+      },
+      "danger": {
+        "role": "semantic-danger",
+        "displayName": "Danger Red",
+        "canonical": "oklch(50% 0.22 25)",
+        "tonalRamp": ["#2E0506", "#570A10", "#88111A", "#B51929", "#DC2626", "#E96060", "#F5A8A8", "#FFE2E2"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Page titles and modal headings. Two per view maximum." },
+      "headline": { "displayName": "Headline", "purpose": "Section headings, major card titles." },
+      "title": { "displayName": "Title", "purpose": "Sub-section labels, named group headings." },
+      "body": { "displayName": "Body", "purpose": "All body copy and data content. 65–75ch on reading surfaces." },
+      "label": { "displayName": "Label", "purpose": "Form labels, column headers, nav section labels. Only uppercase context." },
+      "mono": { "displayName": "Mono", "purpose": "OTP codes, PIN inputs, dev hints, code values." }
+    },
+    "shadows": [
+      {
+        "name": "ambient",
+        "value": "0 1px 3px rgba(26,37,51,0.08), 0 1px 2px rgba(26,37,51,0.06)",
+        "purpose": "Resting state for interactive cards — separates surface from background."
+      },
+      {
+        "name": "lifted",
+        "value": "0 8px 24px rgba(26,37,51,0.12)",
+        "purpose": "Card hover state (paired with translateY(-3px), 250ms ease-out). Signals actionability."
+      },
+      {
+        "name": "dominant",
+        "value": "0 20px 60px rgba(26,37,51,0.18), 0 4px 16px rgba(26,37,51,0.10)",
+        "purpose": "Modals only. Paired with backdrop-filter: blur(4px). Signals shared-flow pause."
+      },
+      {
+        "name": "glow-primary",
+        "value": "0 3px 12px rgba(192,57,43,0.3)",
+        "purpose": "Primary button only. One per view. The brand glow; its rarity is the signal."
+      }
+    ],
+    "motion": [
+      { "name": "ease-standard", "value": "cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "State transitions: color, opacity, border changes." },
+      { "name": "ease-out", "value": "cubic-bezier(0, 0, 0.2, 1)", "purpose": "Entering elements: modals, toasts, row reveals." },
+      { "name": "ease-in", "value": "cubic-bezier(0.4, 0, 1, 1)", "purpose": "Exiting elements: modal dismiss, row removal." },
+      { "name": "duration-instant", "value": "150ms", "purpose": "Micro-interactions: button active, color shifts." },
+      { "name": "duration-quick", "value": "250ms", "purpose": "Card hover lift, nav active state." },
+      { "name": "duration-moderate", "value": "300ms", "purpose": "Modal enter, presence dot transitions." },
+      { "name": "duration-long", "value": "400ms", "purpose": "Completion moments. Maximum for any UI animation." },
+      { "name": "duration-page", "value": "350ms", "purpose": "Page fade-in (pageFadeIn keyframe)." },
+      { "name": "duration-row-stagger-step", "value": "40ms", "purpose": "Per-row stagger delay step for table row reveals." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single primary action per view. Carries the brand glow; only one per screen.",
+      "html": "<button class=\"ds-btn-primary\">Save changes</button>",
+      "css": ".ds-btn-primary { background: #C0392B; color: #fff; padding: 10px 20px; border: none; border-radius: 8px; font-family: Geist, ui-sans-serif, sans-serif; font-size: 0.875rem; font-weight: 600; line-height: 1.25; cursor: pointer; transition: background 150ms ease-out, transform 150ms ease-out, box-shadow 150ms ease-out; box-shadow: 0 3px 12px rgba(192,57,43,0.3); } .ds-btn-primary:hover { background: #9B2D22; transform: translateY(-2px); box-shadow: 0 5px 16px rgba(192,57,43,0.35); } .ds-btn-primary:active { transform: scale(0.97); box-shadow: 0 2px 8px rgba(192,57,43,0.2); } .ds-btn-primary:focus-visible { outline: 2px solid #FAF0EE; outline-offset: 2px; box-shadow: 0 0 0 3px rgba(192,57,43,0.25); } .ds-btn-primary:disabled { opacity: 0.65; cursor: not-allowed; transform: none; } @media (prefers-reduced-motion: reduce) { .ds-btn-primary { transition: background 150ms ease; } .ds-btn-primary:hover { transform: none; } }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Secondary and supplementary actions. No glow. Cancel, back, filter controls.",
+      "html": "<button class=\"ds-btn-ghost\">Cancel</button>",
+      "css": ".ds-btn-ghost { background: transparent; color: #1A2535; padding: 10px 20px; border: 1px solid #E5E7EB; border-radius: 8px; font-family: Geist, ui-sans-serif, sans-serif; font-size: 0.875rem; font-weight: 600; line-height: 1.25; cursor: pointer; transition: background 150ms ease, border-color 150ms ease, transform 150ms ease; } .ds-btn-ghost:hover { background: #F2EAE3; border-color: #D1D5DC; } .ds-btn-ghost:active { transform: scale(0.97); } .ds-btn-ghost:focus-visible { outline: 2px solid #FAF0EE; outline-offset: 2px; box-shadow: 0 0 0 3px rgba(192,57,43,0.15); } @media (prefers-reduced-motion: reduce) { .ds-btn-ghost { transition: background 150ms ease; } .ds-btn-ghost:active { transform: none; } }"
+    },
+    {
+      "name": "State Chips",
+      "kind": "chip",
+      "refersTo": "chip-todo",
+      "description": "Non-interactive semantic state indicators for task status and priority.",
+      "html": "<div class=\"ds-chip-gallery\"><span class=\"ds-chip ds-chip-todo\">To Do</span><span class=\"ds-chip ds-chip-active\">In Progress</span><span class=\"ds-chip ds-chip-done\">Done ✓</span><span class=\"ds-chip ds-chip-cancelled\">Cancelled</span></div>",
+      "css": ".ds-chip-gallery { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; } .ds-chip { display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; font-family: Geist, ui-sans-serif, sans-serif; white-space: nowrap; line-height: 1.25; } .ds-chip-todo { background: #F5F5F4; color: #4D6A80; } .ds-chip-active { background: #DBEAFE; color: #1447E6; } .ds-chip-done { background: #DCFCE7; color: #008138; } .ds-chip-cancelled { background: #F3F4F6; color: #99A1AF; }"
+    },
+    {
+      "name": "Input Field",
+      "kind": "input",
+      "refersTo": "input-default",
+      "description": "Standard text input with label, focus ring using brand crimson.",
+      "html": "<div class=\"ds-field\"><label class=\"ds-field-label\" for=\"ds-input-demo\">Task title</label><input class=\"ds-input\" id=\"ds-input-demo\" type=\"text\" placeholder=\"What needs to happen?\" /></div>",
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 6px; } .ds-field-label { font-family: Geist, ui-sans-serif, sans-serif; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.025em; text-transform: uppercase; color: #364153; } .ds-input { width: 100%; padding: 12px 16px; border: 1px solid #E5E7EB; border-radius: 8px; font-family: Geist, ui-sans-serif, sans-serif; font-size: 0.875rem; color: #1A2535; background: #FFFFFF; outline: none; transition: border-color 150ms ease, box-shadow 150ms ease; line-height: 1.5; } .ds-input::placeholder { color: #8FA5B8; } .ds-input:focus { border-color: #C0392B; box-shadow: 0 0 0 3px rgba(192,57,43,0.10); } .ds-input:disabled { background: #F9FAFB; color: #99A1AF; cursor: not-allowed; }"
+    },
+    {
+      "name": "Sidebar Navigation",
+      "kind": "nav",
+      "refersTo": "button-ghost",
+      "description": "Full-height sidebar with Slate Void background, crimson active indicator, and partner presence cards.",
+      "html": "<nav class=\"ds-sidebar\"><div class=\"ds-sidebar-logo\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\"><path d=\"M12 21C12 21 3 14.5 3 8.5C3 5.42 5.42 3 8.5 3C10.24 3 11.91 3.81 13 5.08C14.09 3.81 15.76 3 17.5 3C20.58 3 23 5.42 23 8.5C23 14.5 12 21 12 21Z\" fill=\"#C0392B\"/></svg><span class=\"ds-sidebar-wordmark\">Together</span></div><div class=\"ds-nav-group-label\">Main</div><a href=\"#\" class=\"ds-nav-item\"><span>✅</span> Tasks</a><a href=\"#\" class=\"ds-nav-item ds-nav-item--active\"><span>📊</span> Statistics</a><a href=\"#\" class=\"ds-nav-item\"><span>⚡</span> Pulse</a></nav>",
+      "css": ".ds-sidebar { background: #1A2535; width: 240px; display: flex; flex-direction: column; } .ds-sidebar-logo { padding: 28px 24px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.06); } .ds-sidebar-wordmark { font-family: Geist, ui-sans-serif, sans-serif; font-size: 1.25rem; font-weight: 700; color: #FFFFFF; } .ds-nav-group-label { padding: 16px 24px 8px; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.3); font-family: Geist, ui-sans-serif, sans-serif; } .ds-nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 24px; font-size: 0.875rem; font-weight: 500; font-family: Geist, ui-sans-serif, sans-serif; color: rgba(255,255,255,0.55); text-decoration: none; border-left: 2px solid transparent; transition: background 200ms ease, color 200ms ease, border-color 200ms ease; } .ds-nav-item:hover { color: rgba(255,255,255,0.80); background: rgba(255,255,255,0.04); } .ds-nav-item--active { color: #FFFFFF; background: rgba(192,57,43,0.15); border-left-color: #C0392B; }"
+    },
+    {
+      "name": "Dual-Presence Dot",
+      "kind": "custom",
+      "refersTo": "button-ghost",
+      "description": "The signature component. Partner online/offline state with a warm pulse when active. Structurally impossible to copy in a single-user app.",
+      "html": "<div class=\"ds-presence-demo\"><div class=\"ds-partner-row\"><div class=\"ds-partner-avatar\" style=\"background:#2980B9;\">DN</div><div class=\"ds-partner-info\"><span class=\"ds-partner-name\">Dan</span><span class=\"ds-partner-role\">partner</span></div><span class=\"ds-presence-dot ds-presence-dot--online\" title=\"Online now\"></span></div><div class=\"ds-partner-row\"><div class=\"ds-partner-avatar\" style=\"background:#C0392B;\">AN</div><div class=\"ds-partner-info\"><span class=\"ds-partner-name\">Ana</span><span class=\"ds-partner-role\">partner</span></div><span class=\"ds-presence-dot ds-presence-dot--offline\" title=\"Offline\"></span></div></div>",
+      "css": ".ds-presence-demo { background: #1A2535; padding: 20px 0 4px; border-radius: 12px; } .ds-partner-row { display: flex; align-items: center; gap: 10px; padding: 0 24px; margin-bottom: 12px; } .ds-partner-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; color: #fff; flex-shrink: 0; font-family: Geist, ui-sans-serif, sans-serif; } .ds-partner-info { flex: 1; min-width: 0; } .ds-partner-name { display: block; font-size: 0.75rem; font-weight: 600; color: rgba(255,255,255,0.85); font-family: Geist, ui-sans-serif, sans-serif; } .ds-partner-role { display: block; font-size: 0.75rem; color: rgba(255,255,255,0.35); font-family: Geist, ui-sans-serif, sans-serif; text-transform: capitalize; } .ds-presence-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; } .ds-presence-dot--online { background: #27AE60; animation: ds-presence-pulse 2s ease-in-out infinite; } .ds-presence-dot--offline { background: #6B7280; } @keyframes ds-presence-pulse { 0%, 100% { box-shadow: 0 0 0 2px rgba(39,174,96,0.2); } 50% { box-shadow: 0 0 0 4px rgba(39,174,96,0.1); } } @media (prefers-reduced-motion: reduce) { .ds-presence-dot--online { animation: none; box-shadow: 0 0 0 2px rgba(39,174,96,0.3); } }"
+    },
+    {
+      "name": "Surface Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Base surface card. Flat at rest, lifts on hover. Used for stat summaries and grouping content.",
+      "html": "<div class=\"ds-card\"><p class=\"ds-card-label\">In Progress</p><p class=\"ds-card-value\">7</p><p class=\"ds-card-sub\">being worked on</p><div class=\"ds-card-bar\"><div class=\"ds-card-bar-fill\" style=\"width: 42%; background: #2980B9;\"></div></div></div>",
+      "css": ".ds-card { background: #FFFFFF; border: 1px solid #F3F4F6; border-radius: 16px; padding: 20px; transition: transform 250ms ease-out, box-shadow 250ms ease-out; cursor: default; } .ds-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(26,37,51,0.12); } .ds-card-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.025em; color: #6A7282; margin-bottom: 4px; font-family: Geist, ui-sans-serif, sans-serif; } .ds-card-value { font-size: 1.875rem; font-weight: 700; color: #1A2535; line-height: 1.1; margin-bottom: 4px; font-family: Geist, ui-sans-serif, sans-serif; letter-spacing: -0.02em; } .ds-card-sub { font-size: 0.75rem; color: #8FA5B8; margin-bottom: 12px; font-family: Geist, ui-sans-serif, sans-serif; } .ds-card-bar { height: 4px; background: #F3F4F6; border-radius: 9999px; overflow: hidden; } .ds-card-bar-fill { height: 100%; border-radius: 9999px; transition: width 700ms ease-out; } @media (prefers-reduced-motion: reduce) { .ds-card { transition: none; } .ds-card:hover { transform: none; box-shadow: none; } .ds-card-bar-fill { transition: none; } }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Two of Us",
+    "overview": "Together is designed for exactly two people who know each other. The relationship is not the theme of this app — it is a first-class object in the data model and in the design. Every surface asks: does this make the partnership more visible and more felt? Not 'is this productive?' but 'does this feel accompanied?'\n\nThe visual system is warm and certain. The primary red is committed and specific — the color of the heart in the logo, the color of an action that matters to both of you, never an error color. The dark foundation grounds the sidebar and frame, lending reliability without coldness. Core surfaces stay calm; delight is concentrated into three bounded categories and does not leak into ambient decoration.\n\nThe signature gesture — dual-presence — is structurally impossible to copy in a single-user app. The partner's online state and live actions are visible across surfaces. That is the 'two of us' — not a theme, not a color scheme, but a design primitive.",
+    "keyCharacteristics": [
+      "Warm and certain, never loud",
+      "One Pompeii Crimson accent per view — its rarity is the signal",
+      "Flat at rest; lift reserved for interactive or live-shared state",
+      "Dual-presence as a first-class design element",
+      "Craft-delight bounded to three categories only",
+      "All color values are tokens; inline style attributes are findings to eliminate"
+    ],
+    "rules": [
+      { "name": "The Token Law", "body": "Every color value is a token class. Inline style={{ background }} attributes are forbidden. The @theme inline block in globals.css is the single source of truth.", "section": "colors" },
+      { "name": "The One Crimson Rule", "body": "Pompeii Crimson marks exactly one primary action per view. Two crimsons means broken hierarchy.", "section": "colors" },
+      { "name": "The Flat-By-Default Rule", "body": "New components ship without shadow. Shadow is earned by a specific interactive state, not applied for polish.", "section": "elevation" },
+      { "name": "The One Modal Rule", "body": "At most one element carries Dominant shadow at a time. No nested modals.", "section": "elevation" },
+      { "name": "The One-Glow Rule", "body": "One primary button means one glow per view. The glow's rarity is its meaning.", "section": "components" },
+      { "name": "The Weight-Contrast Rule", "body": "Hierarchy is weight and scale, not color. Never color text to indicate heading level.", "section": "typography" }
+    ],
+    "dos": [
+      "Define every color in globals.css @theme inline. Use bg-cr, text-sl-muted, bg-cm-pale everywhere.",
+      "Use Pompeii Crimson for exactly one primary action per view.",
+      "Show partner presence on every interactive surface where it is meaningful.",
+      "Keep the delight inventory to three categories: completion moments, presence transitions, considered empty states.",
+      "Write empty states that feel personal — acknowledge the partnership, not the empty database.",
+      "Provide @media (prefers-reduced-motion: reduce) alternatives for every animation.",
+      "Verify contrast before every ship: body text ≥4.5:1, large text ≥3:1."
+    ],
+    "donts": [
+      "Don't use inline style={{ background: '#C0392B' }} or any inline color value. Every inline color is a violation.",
+      "Don't use #E8D5B7 or any warm cream/sand as a surface tint. Use cm (#F2EAE3) or cm-pale (#FAF8F6) instead.",
+      "Don't place two primary buttons (two glows) on the same screen.",
+      "Don't add gamification: no streaks, no confetti, no progress rings, no nagging copy.",
+      "Don't use dating-app warmth: no floating hearts, no pink washes, no gradient fills, no swipe gestures.",
+      "Don't use cold enterprise SaaS patterns: not Jira blue as brand, not information-dense tables without breathing room.",
+      "Don't place a nested card. Refactor to flat row list or inline content block.",
+      "Don't add shadow to a new component without a named reason tied to interactive state.",
+      "Don't use border-left > 1px as a colored accent stripe. Use a background tint or leading icon instead."
+    ]
+  }
+}
