@@ -1,0 +1,6 @@
+{
+  "files": ["together-app-ui/app/layout.tsx"],
+  "insertBefore": "</body>",
+  "commentSyntax": "jsx",
+  "cspChecked": true
+}
