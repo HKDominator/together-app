@@ -599,6 +599,10 @@ Order is dependency-driven: tokens unblock the visual sweep, the identity wire u
 - **FD-12** chat/workspace rename, **FD-15** logs tooling, **FD-17** account IA.
 - Responsive/touch: **AUD-10** 44px targets + touch-visible controls, **AUD-12** responsive ChatPanel.
 
+### Stretch — only after Wave 4 ships
+
+> **Guardrail:** no new features get built until dual-presence (FD-05/FD-06) is functional and shipped.
+
 ## Decisions / ADRs
 
 ADRs live in [docs/adr/](docs/adr/):
