@@ -258,14 +258,14 @@ export default function StatisticsPage() {
 
             {/* Bar chart */}
             <div className="bg-white rounded-2xl p-7 border border-gray-100 shadow-sm">
-              <h3 className="font-display text-lg font-semibold text-gray-800 mb-1">Tasks Completed</h3>
+              <h2 className="font-display text-lg font-semibold text-gray-800 mb-1">Tasks Completed</h2>
               <p className="text-xs text-gray-400 mb-6">Monthly comparison — Ana vs Dan</p>
               <BarChart anaData={monthlyData.map(m => m.ana)} danData={monthlyData.map(m => m.dan)} labels={monthlyData.map(m => m.label)} />
             </div>
 
             {/* Donut */}
             <div className="bg-white rounded-2xl p-7 border border-gray-100 shadow-sm">
-              <h3 className="font-display text-lg font-semibold text-gray-800 mb-1">Status Breakdown</h3>
+              <h2 className="font-display text-lg font-semibold text-gray-800 mb-1">Status Breakdown</h2>
               <p className="text-xs text-gray-400 mb-6">Current distribution across all tasks</p>
               <DonutChart data={donutData} />
             </div>
@@ -275,7 +275,7 @@ export default function StatisticsPage() {
 
             {/* Priority split */}
             <div className="bg-white rounded-2xl p-7 border border-gray-100 shadow-sm">
-              <h3 className="font-display text-lg font-semibold text-gray-800 mb-1">Priority Split</h3>
+              <h2 className="font-display text-lg font-semibold text-gray-800 mb-1">Priority Split</h2>
               <p className="text-xs text-gray-400 mb-6">Distribution by urgency</p>
               <div className="flex flex-col gap-4">
                 {priorityData.map(p => (
@@ -297,7 +297,7 @@ export default function StatisticsPage() {
 
             {/* Contribution ranking */}
             <div className="bg-white rounded-2xl p-7 border border-gray-100 shadow-sm lg:col-span-2">
-              <h3 className="font-display text-lg font-semibold text-gray-800 mb-1">Contribution Ranking ⭐</h3>
+              <h2 className="font-display text-lg font-semibold text-gray-800 mb-1">Contribution Ranking ⭐</h2>
               <p className="text-xs text-gray-400 mb-6">Based on tasks completed, on-time rate, and difficulty</p>
               <div className="flex flex-col gap-3">
                 {[...userStats]

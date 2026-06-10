@@ -42,7 +42,7 @@ function Inner() {
   return (
     <div className="min-h-screen flex items-center justify-center px-8">
       <div className="w-full max-w-md">
-        <h3 className="font-display text-3xl font-bold mb-1">Reset your password</h3>
+        <h1 className="font-display text-3xl font-bold mb-1">Reset your password</h1>
         <p className="text-sm text-gray-500 mb-6">Enter the code we sent you and choose a new password.</p>
 
         {err && <div className="mb-4 p-3 rounded bg-red-50 text-sm text-red-700">{err}</div>}

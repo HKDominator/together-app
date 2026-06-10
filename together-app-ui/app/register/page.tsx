@@ -63,7 +63,7 @@ export default function RegisterPage() {
       <div className="bg-gradient-to-br from-rose-50 to-amber-50 hidden md:block" />
       <div className="flex items-center justify-center px-8 py-20">
         <div className="w-full max-w-md">
-          <h3 className="font-display text-3xl font-bold mb-1">Create your account</h3>
+          <h1 className="font-display text-3xl font-bold mb-1">Create your account</h1>
           <p className="text-sm text-gray-500 mb-6">No credit card needed.</p>
 
           {serverError && (
