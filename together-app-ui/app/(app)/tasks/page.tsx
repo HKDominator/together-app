@@ -246,7 +246,7 @@ export default function TasksPage() {
                       {isOptimistic && <span className="ml-2 text-xs text-amber-600">· syncing</span>}
                     </p>
                     {t.description && (
-                      <p className="text-xs text-gray-400 truncate max-w-xs mt-0.5">{t.description}</p>
+                      <p className={`text-xs truncate max-w-xs mt-0.5 ${isOverdue ? 'text-red-700' : 'text-gray-500'}`}>{t.description}</p>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
