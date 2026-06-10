@@ -152,9 +152,9 @@ export default function StatisticsPage() {
   ]
 
   const priorityData = [
-    { label: '🔴 High',   value: tasks.filter(t => t.priority === 'high').length,   pct: total ? Math.round(tasks.filter(t => t.priority === 'high').length   / total * 100) : 0, color: '#C0392B' },
-    { label: '🟡 Medium', value: tasks.filter(t => t.priority === 'medium').length, pct: total ? Math.round(tasks.filter(t => t.priority === 'medium').length / total * 100) : 0, color: '#F39C12' },
-    { label: '🟢 Low',    value: tasks.filter(t => t.priority === 'low').length,    pct: total ? Math.round(tasks.filter(t => t.priority === 'low').length    / total * 100) : 0, color: '#27AE60' },
+    { label: '▲ High',   value: tasks.filter(t => t.priority === 'high').length,   pct: total ? Math.round(tasks.filter(t => t.priority === 'high').length   / total * 100) : 0, color: '#C0392B' },
+    { label: '■ Medium', value: tasks.filter(t => t.priority === 'medium').length, pct: total ? Math.round(tasks.filter(t => t.priority === 'medium').length / total * 100) : 0, color: '#F39C12' },
+    { label: '▼ Low',    value: tasks.filter(t => t.priority === 'low').length,    pct: total ? Math.round(tasks.filter(t => t.priority === 'low').length    / total * 100) : 0, color: '#27AE60' },
   ]
 
   // Per-user stats
