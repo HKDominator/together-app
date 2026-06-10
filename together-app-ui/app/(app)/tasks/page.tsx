@@ -233,9 +233,13 @@ export default function TasksPage() {
               return (
                 <div
                   key={t.id}
+                  role="row"
+                  tabIndex={0}
                   onClick={() => handleRowClick(t.id)}
+                  onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && handleRowClick(t.id)}
                   className={`grid grid-cols-[2fr_1fr_100px_110px_100px_80px] px-6 py-3.5 border-b border-gray-50
                     items-center cursor-pointer transition-colors hover:bg-cm-pale last:border-b-0
+                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cr focus-visible:ring-inset
                     ${isOverdue ? 'bg-red-50/30' : ''}
                     ${isOptimistic ? 'opacity-60' : ''}`}
                 >
