@@ -571,16 +571,16 @@ The remaining FD rows, approved as proposed by the product owner. These are now 
 
 Order is dependency-driven: tokens unblock the visual sweep, the identity wire unblocks the signature features. Every backlog ID is slotted; nothing is dropped.
 
-**Wave 0 — security track (separate, in flight).** SEC-01–07 done on `hotfix/security-phase1`; SEC-08–12 next, then SEC-13–17 hardening.
+**Wave 0 — security track (separate, in flight).** SEC-01–07 done on `hotfix/security-phase1`. **Security hotfix (2026-06-10/11, on `refactor/together_app_v2_1`):** **SEC-08** (rate limiting — ThrottlerModule added, ThrottlerGuard on auth endpoints) and **SEC-13** (JWT algorithm pinning — `algorithms:['HS256']` on all `verify()` calls) both addressed during the Wave 1/2 sprint. Two additional unplanned findings also fixed: `UsersController` missing `@UseGuards(AuthGuard)` (user entity including password hashes leaked to unauthenticated callers); `StatsController` missing `@UseGuards(AuthGuard)` (task statistics leaked unauthenticated). SEC-09–12, SEC-14–17 pending.
 
-**Wave 1 — foundations (highest leverage, do first).**
-- `globals.css` batch (one file): **AUD-02** token block (auto-resolves **AUD-01** focus rings), **AUD-05** Arial→Geist, **AUD-09** global reduced-motion block, **AUD-13** easing, **AUD-14** remove dark-mode block.
-- **Identity wire** (one root fix): thread the authenticated user from AuthContext/JWT into task & comment creation and the "mine" checks — resolves **BUG-02, BUG-03, BUG-17, BUG-18, BUG-19** at once. Hard prerequisite for FD-05/FD-06.
-- **BUG-32** `graphql()` missing `credentials:'include'` — a live regression now that SEC-01 guards the resolvers; the GraphQL client 401s without it.
+**Wave 1 — foundations ✓ DONE (2026-06-10).** All items committed on `refactor/together_app_v2_1`.
+- `globals.css` batch ✓: **AUD-02** token block (auto-resolved **AUD-01** focus rings — no separate fix needed, as planned), **AUD-05** Arial→Geist, **AUD-09** global reduced-motion, **AUD-13** easing, **AUD-14** dark-mode block removed.
+- Identity wire ✓: **BUG-02, BUG-03, BUG-17, BUG-18, BUG-19** — all five resolved by threading the authenticated user from AuthContext/JWT into task/comment creation and "mine" checks, one root fix as planned.
+- **BUG-32** ✓ `graphql()` credentials:`'include'` added.
 
-**Wave 2 — mechanical token/markup sweep (after Wave 1 tokens exist).**
-- Color migration: **AUD-03** (~55 inline hex), **AUD-04** (banned cream), **AUD-15** (stale navy + typo), **FD-13** chat bubble re-color, **FD-14** eyebrow removal.
-- Markup/a11y: **AUD-06** heading levels, **AUD-07** nested sidebar links, **AUD-08** ARIA on icon-only controls, **AUD-11** 12px text floor, **CR-06** priority not color-alone, **CR-11** overdue contrast, **CR-12** task rows → real buttons.
+**Wave 2 — mechanical token/markup sweep ✓ DONE (2026-06-11).** All items committed on `refactor/together_app_v2_1`.
+- Color migration ✓: **AUD-03** (inline `#C0392B` hex → `bg-cr`/`var(--color-cr)` token classes), **AUD-04** (banned cream `rgba(232,213,183,…)` → white-alpha), **AUD-15** (stale `#2C3E50` and typo `#1A2533` → `bg-sl`), **FD-13** (chat bubbles: mine=`bg-cm text-sl`, theirs=`border-gray-100`; crimson kept on Send button only), **FD-14** (`uppercase tracking-widest` removed from nav section labels; table column headers and form labels kept per spec; _note: two marketing eyebrow instances on landing page intentionally exempt_).
+- Markup/a11y ✓: **AUD-06** (`<h3>` → `<h1>` on all four auth pages; `<h3>` → `<h2>` on four stats section cards), **AUD-07** (nested admin `<Link>` hierarchy flattened to three sibling links), **AUD-08** (`role="img"` + `aria-label` on presence dots; `aria-label` on chat close, task edit/delete, comment edit/delete; _note: sessions-page Revoke per-session name deferred to Wave 3 — button text "Revoke" is not icon-only_), **AUD-11** (all `fontSize: 8/9` and `text-[9px]/text-[10px]` raised to `12`/`text-xs`), **CR-06** (priority emoji `🔴🟡🟢` → shape symbols `▲ High / ■ Medium / ▼ Low`), **CR-11** (overdue description text conditionally `text-red-700`), **CR-12** (task rows → `role="row"` + `tabIndex={0}` + `onKeyDown` Enter/Space + `focus-visible:ring-cr`; full `<button>` invalid because rows contain nested action buttons).
 
 **Wave 3 — correctness fixes.**
 - Backend logic: **BUG-01** chat timestamps, **BUG-04/05** due-date validation, **BUG-06** stats math, **BUG-07** role-system unification, **BUG-08** setState locking, **BUG-11** admin delete, **BUG-37** session metadata; long tail **BUG-09, BUG-10, BUG-12, BUG-13, BUG-15, BUG-16**.
@@ -620,3 +620,4 @@ The "Approved decisions" table above was approved as proposed on 2026-06-10 (zer
 - **Security track** runs independently on `hotfix/security-phase1` (SEC-01–07 fixed; two pre-existing test failures are unrelated; SEC-07 has a seed residual to finish).
 - **Phase 2** (this section) is complete: all decisions locked or approved (veto pass 2026-06-10, zero vetoes). Next action: build starts at **Wave 1** — `globals.css` tokens, the identity wire, and BUG-32 are the first three changes.
 - Wave 1's identity wire is the single highest-leverage code change outside security: five findings collapse into one fix and it unblocks the signature features.
+- **Phase 3 progress (2026-06-11):** Waves 1–2 shipped on `refactor/together_app_v2_1`; next is **Wave 3** (correctness fixes — backend logic, frontend error handling/UX, offline/realtime bugs).
