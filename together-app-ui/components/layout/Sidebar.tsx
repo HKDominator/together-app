@@ -131,6 +131,8 @@ export default function Sidebar() {
               </p>
             </div>
             <span
+              role="img"
+              aria-label={u.id === currentUser.id ? `${u.name} is online` : `${u.name} is offline`}
               className="w-2 h-2 rounded-full"
               style={{
                 background: u.id === currentUser.id ? "#27AE60" : "#6B7280",

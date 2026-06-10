@@ -83,7 +83,7 @@ export default function ChatPanel() {
         <div className="w-80 h-[28rem] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-gray-200">
           <div className="px-4 py-3 flex items-center justify-between border-b bg-sl">
             <span className="text-white text-sm font-semibold">Workspace chat</span>
-            <button onClick={() => setOpen(false)} className="text-white/70 hover:text-white text-lg">×</button>
+            <button onClick={() => setOpen(false)} aria-label="Close chat" className="text-white/70 hover:text-white text-lg">×</button>
           </div>
 
           <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3 bg-gray-50">

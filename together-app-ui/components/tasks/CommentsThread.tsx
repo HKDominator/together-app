@@ -196,12 +196,12 @@ export default function CommentsThread({ taskId }: Props) {
                   <button
                     onClick={() => setEditing({ id: c.id, body: c.body })}
                     className="p-1.5 text-xs rounded-md text-gray-400 hover:text-cr hover:bg-cr-pale"
-                    title="Edit"
+                    aria-label="Edit comment"
                   >✎</button>
                   <button
                     onClick={() => handleDelete(c.id)}
                     className="p-1.5 text-xs rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50"
-                    title="Delete"
+                    aria-label="Delete comment"
                   >🗑</button>
                 </div>
               )}

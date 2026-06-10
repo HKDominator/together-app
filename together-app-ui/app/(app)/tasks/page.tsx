@@ -268,12 +268,12 @@ export default function TasksPage() {
                     <button
                       onClick={e => openEdit(t, e)}
                       className="p-1.5 rounded-md text-gray-400 hover:text-cr hover:bg-cr-pale transition-colors text-sm"
-                      title="Edit"
+                      aria-label="Edit task"
                     >✎</button>
                     <button
                       onClick={e => { e.stopPropagation(); setDeleteId(t.id) }}
                       className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors text-sm"
-                      title="Delete"
+                      aria-label="Delete task"
                     >🗑</button>
                   </div>
                 </div>
