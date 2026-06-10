@@ -101,11 +101,11 @@ export default function ChatPanel() {
                     </div>
                   )}
                   <div className={`max-w-[70%] px-3 py-2 rounded-2xl text-sm ${
-                    mine ? 'bg-red-600 text-white rounded-br-sm' : 'bg-white border rounded-bl-sm text-gray-800'
+                    mine ? 'bg-cm text-sl rounded-br-sm' : 'bg-white border border-gray-100 rounded-bl-sm text-gray-800'
                   }`}>
-                    {!mine && <div className="text-[10px] font-semibold mb-0.5" style={{ color: m.senderColor }}>{m.senderName}</div>}
+                    {!mine && <div className="text-xs font-semibold mb-0.5" style={{ color: m.senderColor }}>{m.senderName}</div>}
                     <div className="whitespace-pre-wrap break-words">{m.body}</div>
-                    <div className={`text-[9px] mt-1 ${mine ? 'text-red-100' : 'text-gray-400'}`}>
+                    <div className={`text-xs mt-1 ${mine ? 'text-sl/60' : 'text-gray-400'}`}>
                       {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </div>
                   </div>
