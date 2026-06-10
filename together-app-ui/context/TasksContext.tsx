@@ -32,6 +32,7 @@ import { api, isNetworkError } from '@/lib/api'
 import { getSocket } from '@/lib/ws'
 import { offlineQueue } from '@/lib/offlineQueue'
 import { useOnlineStatus } from '@/hooks/useOnlineStatus'
+import { useAuth } from '@/context/AuthContext'
 
 const INITIAL_PAGE_SIZE = 20
 const PAGE_SIZE         = 20
@@ -113,14 +114,14 @@ const TasksContext = createContext<TasksContextValue | null>(null)
 
 const tempId = () => `tmp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
 
-function optimisticTask(dto: ValidatedTaskData, id: string): Task {
+export function makeOptimisticTask(dto: ValidatedTaskData, id: string, createdById: string): Task {
   const now = new Date().toISOString()
   return {
     id,
     title:       dto.title,
     description: dto.description ?? '',
     assigneeId:  dto.assigneeId,
-    createdById: 'u1',
+    createdById,
     priority:    dto.priority,
     state:       'todo',
     dueDate:     dto.dueDate || null,
@@ -131,6 +132,7 @@ function optimisticTask(dto: ValidatedTaskData, id: string): Task {
 
 // ── Provider ─────────────────────────────────────────────────────────
 export function TasksProvider({ children }: { children: ReactNode }) {
+  const { user: authUser } = useAuth()
   const [state, dispatch]             = useReducer(tasksReducer, { tasks: [] })
   const [isLoading, setIsLoading]     = useState(true)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
@@ -318,7 +320,7 @@ export function TasksProvider({ children }: { children: ReactNode }) {
   // ── Public mutations ───────────────────────────────────────────
   const createTask = useCallback(async (dto: ValidatedTaskData) => {
     const tId = tempId()
-    dispatch({ type: 'UPSERT', payload: optimisticTask(dto, tId) })
+    dispatch({ type: 'UPSERT', payload: makeOptimisticTask(dto, tId, authUser?.id ?? '') })
     setTotalTasks(n => n + 1)
 
     if (!isOnlineRef.current) { offlineQueue.enqueueCreate(tId, dto); refreshPending(); return }
@@ -398,7 +400,7 @@ export function TasksProvider({ children }: { children: ReactNode }) {
       value={{
         tasks:        state.tasks,
         users:        users,
-        currentUser:  users[0],
+        currentUser:  users.find(u => u.id === authUser?.id) ?? users[0],
         isOnline,
         isLoading,
         isLoadingMore,

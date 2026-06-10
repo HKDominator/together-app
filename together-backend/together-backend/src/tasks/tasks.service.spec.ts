@@ -88,26 +88,43 @@ describe('TasksService (unit, mocked repos)', () => {
 
     it('rejects an unknown assignee', async () => {
       users.exists.mockResolvedValue(false)
-      await expect(service.create(makeDto({ assigneeId: 'ghost' })))
+      await expect(service.create(makeDto({ assigneeId: 'ghost' }), 'u-1'))
         .rejects.toBeInstanceOf(BadRequestException)
     })
 
     it('rejects a past due date', async () => {
-      await expect(service.create(makeDto({ dueDate: '2000-01-01' })))
+      await expect(service.create(makeDto({ dueDate: '2000-01-01' }), 'u-1'))
         .rejects.toBeInstanceOf(BadRequestException)
     })
 
     it('accepts a future due date', async () => {
-      const t = await service.create(makeDto({ dueDate: FUTURE }))
+      const t = await service.create(makeDto({ dueDate: FUTURE }), 'u-1')
       expect(repo.insert).toHaveBeenCalledWith(expect.objectContaining({ dueDate: FUTURE }))
       expect(t.dueDate).toBe(FUTURE)
     })
 
     it('trims title and description', async () => {
-      await service.create(makeDto({ title: '  padded  ', description: '  note  ' }))
+      await service.create(makeDto({ title: '  padded  ', description: '  note  ' }), 'u-1')
       expect(repo.insert).toHaveBeenCalledWith(expect.objectContaining({
         title: 'padded', description: 'note',
       }))
+    })
+
+    // ── BUG-02 / identity wire ─────────────────────────────────────
+    // create() must record the caller's id as createdById — not the
+    // first 'owner' from resolveDefaultCreator().
+    it('uses the caller id as createdById, not the first owner', async () => {
+      await service.create(makeDto(), 'caller-uuid')
+      expect(repo.insert).toHaveBeenCalledWith(
+        expect.objectContaining({ createdById: 'caller-uuid' }),
+      )
+    })
+
+    it('existing tests still pass when creatorId matches the old default', async () => {
+      await service.create(makeDto(), 'u-1')
+      expect(repo.insert).toHaveBeenCalledWith(
+        expect.objectContaining({ createdById: 'u-1' }),
+      )
     })
   })
 

@@ -10,8 +10,20 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* ── Brand tokens (DESIGN.md §2) ──────────────────────────────── */
+  --color-cr: #C0392B;
+  --color-cr-deep: #9B2D22;
+  --color-cr-pale: #FAF0EE;
+  --color-sl: #1A2535;
+  --color-sl-muted: #4D6A80;
+  --color-sl-dim: #8FA5B8;
+  --color-cm: #F2EAE3;
+  --color-cm-pale: #FAF8F6;
+  --font-display: var(--font-geist-sans);
 }
 
+/* ── Page entrance ────────────────────────────────────────────────── */
 @keyframes pageFadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -21,6 +33,7 @@
   animation: pageFadeIn 0.35s ease forwards;
 }
 
+/* ── Task row stagger ─────────────────────────────────────────────── */
 @keyframes rowFadeIn {
   from { opacity: 0; transform: translateX(-8px); }
   to   { opacity: 1; transform: translateX(0); }
@@ -40,16 +53,17 @@
 .row-animate:nth-child(7)  { animation-delay: 0.24s; }
 .row-animate:nth-child(8)  { animation-delay: 0.28s; }
 
-
+/* ── Modal entrance (ease-out-expo, no bounce) ────────────────────── */
 @keyframes modalSlideUp {
   from { opacity: 0; transform: scale(0.95) translateY(16px); }
   to   { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 .modal-enter {
-  animation: modalSlideUp 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation: modalSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* ── Backdrop ─────────────────────────────────────────────────────── */
 @keyframes backdropFade {
   from { opacity: 0; }
   to   { opacity: 1; }
@@ -59,6 +73,7 @@
   animation: backdropFade 0.2s ease forwards;
 }
 
+/* ── Stat card pop ────────────────────────────────────────────────── */
 @keyframes statPop {
   0%   { transform: scale(1); }
   50%  { transform: scale(1.04); }
@@ -67,6 +82,19 @@
 
 .stat-pop {
   animation: statPop 0.4s ease forwards;
+}
+
+/* ── Dual-presence dot pulse (DESIGN.md §5) ──────────────────────── */
+/* Used in Wave 4 when dual-presence ships. Signal is also carried by
+   color (green vs gray), so dropping the animation under reduced-motion
+   is safe — presence is still communicated visually. */
+@keyframes presencePulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
+}
+
+.presence-dot-online {
+  animation: presencePulse 2s ease-in-out infinite;
 }
 
 /* ── Sidebar nav active indicator slide ───────────────────────────── */
@@ -90,24 +118,31 @@ input:focus, select:focus, textarea:focus {
 }
 .card-hover:hover {
   transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(44,62,80,0.12);
+  box-shadow: 0 8px 24px rgba(26,37,51,0.12);
 }
 
 /* ── Scrollbar ────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(44,62,80,0.15); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(44,62,80,0.25); }
+::-webkit-scrollbar-thumb { background: rgba(26,37,51,0.15); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(26,37,51,0.25); }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* ── Reduced motion (AUD-09, DESIGN.md §6 "Do") ──────────────────── */
+/* Crossfade or instant — no flash. Presence pulse drops to static;
+   color continues to carry the online/offline signal. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .presence-dot-online {
+    animation: none;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
 }

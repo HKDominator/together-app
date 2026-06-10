@@ -3,6 +3,7 @@
 // AiAnomalyService) and TagsModule.
 import { Module } from '@nestjs/common'
 import { ScheduleModule } from '@nestjs/schedule'
+import { ThrottlerModule } from '@nestjs/throttler'
 import { DatabaseModule } from './database/database.module'
 import { TasksModule } from './tasks/tasks.module'
 import { UsersModule } from './users/users.module'
@@ -18,6 +19,7 @@ import { TagsModule } from './tags/tags.module'
   imports: [
     DatabaseModule,           // ← FIRST so every other module can DI repos
     ScheduleModule.forRoot(), // ← required for @Cron decorators
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 10 }]),
     AuthModule,
     TasksModule,
     UsersModule,

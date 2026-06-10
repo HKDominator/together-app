@@ -53,13 +53,13 @@ export class JwtUtil {
   }
 
   verifyAccess(token: string): AccessTokenClaims {
-    const c = jwt.verify(token, this.secret) as AccessTokenClaims
+    const c = jwt.verify(token, this.secret, { algorithms: ['HS256'] }) as AccessTokenClaims
     if (c.typ !== 'access') throw new Error('Wrong token type')
     return c
   }
 
   verifyRefresh(token: string): RefreshTokenClaims {
-    const c = jwt.verify(token, this.secret) as RefreshTokenClaims
+    const c = jwt.verify(token, this.secret, { algorithms: ['HS256'] }) as RefreshTokenClaims
     if (c.typ !== 'refresh') throw new Error('Wrong token type')
     return c
   }

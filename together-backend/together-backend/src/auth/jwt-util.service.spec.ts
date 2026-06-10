@@ -25,4 +25,17 @@ describe('JwtUtil secret validation (SEC-03)', () => {
     const claims = jwt.verifyAccess(token)
     expect(claims).toMatchObject({ sub: 'u1', sid: 'sess-1', typ: 'access' })
   })
+
+  it('rejects tokens signed with a non-HS256 algorithm (VERIFY-01)', () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const rawJwt = require('jsonwebtoken')
+    const secret = 's3cret-with-enough-entropy'
+    const jwtUtil = new JwtUtil(cfgFrom({ JWT_SECRET: secret }) as any)
+    const hs384Token = rawJwt.sign(
+      { sub: 'u1', sid: 's1', typ: 'access', roles: [] },
+      secret,
+      { algorithm: 'HS384' },
+    )
+    expect(() => jwtUtil.verifyAccess(hs384Token)).toThrow()
+  })
 })

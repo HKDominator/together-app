@@ -1,7 +1,7 @@
 // Destination: together-backend/together-backend/src/graphql/tasks.resolver.ts
 // REPLACE the entire file. Every method is now async with a Promise return type.
 import {
-  Args, ID, Int, Mutation, Parent, Query, ResolveField, Resolver,
+  Args, Context, ID, Int, Mutation, Parent, Query, ResolveField, Resolver,
 } from '@nestjs/graphql'
 import { UseGuards } from '@nestjs/common'
 import { TasksService } from '../tasks/tasks.service'
@@ -37,8 +37,11 @@ export class TasksResolver {
 
   @Mutation(() => TaskGQL)
   @RequirePermissions('task.create')
-  async createTask(@Args('input') input: CreateTaskInput): Promise<TaskGQL> {
-    return (await this.tasks.create(input)) as unknown as TaskGQL
+  async createTask(
+    @Args('input') input: CreateTaskInput,
+    @Context() ctx: { req: { user: { id: string } } },
+  ): Promise<TaskGQL> {
+    return (await this.tasks.create(input, ctx.req.user.id)) as unknown as TaskGQL
   }
 
   @Mutation(() => TaskGQL)

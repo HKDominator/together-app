@@ -45,18 +45,21 @@ export class TaskGeneratorService implements OnModuleDestroy {
 
   private async generateBatch() {
     const count = faker.number.int({ min: this.MIN_PER_BATCH, max: this.MAX_PER_BATCH })
+    const allUsers = await this.users.findAll()
     for (let i = 0; i < count; i++) {
       try {
-        await this.tasks.create(await this.makeFakeTaskDto())
+        const dto = await this.makeFakeTaskDto(allUsers)
+        const creator = allUsers[Math.floor(Math.random() * allUsers.length)]
+        await this.tasks.create(dto, creator.id)
       } catch (err) {
         this.log.warn(`generator skipped one: ${(err as Error).message}`)
       }
     }
   }
 
-  private async makeFakeTaskDto(): Promise<CreateTaskDto> {
-    const allUsers = await this.users.findAll()
-    const assignee = allUsers[Math.floor(Math.random() * allUsers.length)]
+  private async makeFakeTaskDto(allUsers?: Awaited<ReturnType<UsersService['findAll']>>): Promise<CreateTaskDto> {
+    const users   = allUsers ?? await this.users.findAll()
+    const assignee = users[Math.floor(Math.random() * users.length)]
     return {
       title:       faker.lorem.sentence({ min: 3, max: 7 }).slice(0, 99),
       description: faker.lorem.paragraph({ min: 1, max: 2 }).slice(0, 499),

@@ -1,7 +1,7 @@
 // Destination: together-backend/together-backend/src/graphql/comments.resolver.ts
 // REPLACE the entire file.
 import {
-  Args, ID, Mutation, Query, Resolver,
+  Args, Context, ID, Mutation, Query, Resolver,
 } from '@nestjs/graphql'
 import { UseGuards } from '@nestjs/common'
 import { CommentsService } from '../comments/comments.service'
@@ -27,8 +27,9 @@ export class CommentsResolver {
   async addComment(
     @Args('taskId', { type: () => ID }) taskId: string,
     @Args('input')                      input:  CreateCommentInput,
+    @Context() ctx: { req: { user: { id: string } } },
   ): Promise<CommentGQL> {
-    return (await this.comments.create(taskId, input)) as unknown as CommentGQL
+    return (await this.comments.create(taskId, input, ctx.req.user.id)) as unknown as CommentGQL
   }
 
   @Mutation(() => CommentGQL)
@@ -36,14 +37,18 @@ export class CommentsResolver {
   async editComment(
     @Args('id',    { type: () => ID }) id:    string,
     @Args('input')                     input: UpdateCommentInput,
+    @Context() ctx: { req: { user: { id: string } } },
   ): Promise<CommentGQL> {
-    return (await this.comments.update(id, input)) as unknown as CommentGQL
+    return (await this.comments.update(id, input, ctx.req.user.id)) as unknown as CommentGQL
   }
 
   @Mutation(() => Boolean)
   @RequirePermissions('comment.delete')
-  async deleteComment(@Args('id', { type: () => ID }) id: string): Promise<boolean> {
-    await this.comments.remove(id)
+  async deleteComment(
+    @Args('id', { type: () => ID }) id: string,
+    @Context() ctx: { req: { user: { id: string } } },
+  ): Promise<boolean> {
+    await this.comments.remove(id, ctx.req.user.id)
     return true
   }
 }

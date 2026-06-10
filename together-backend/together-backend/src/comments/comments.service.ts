@@ -1,6 +1,6 @@
 // Destination: together-backend/together-backend/src/comments/comments.service.ts
 import {
-  BadRequestException, ForbiddenException, Injectable, NotFoundException,
+  ForbiddenException, Injectable, NotFoundException,
 } from '@nestjs/common'
 import { CommentsRepository } from './comments.repository'
 import { Comment } from './entities/comment.entity'
@@ -8,15 +8,13 @@ import { CreateCommentDto } from './dto/create-comment.dto'
 import { UpdateCommentDto } from './dto/update-comment.dto'
 import { TasksRepository } from '../tasks/tasks.repository'
 import { UsersService } from '../users/users.service'
-import { UsersRepository } from '../users/users.repository'
 
 @Injectable()
 export class CommentsService {
   constructor(
-    private readonly repo:      CommentsRepository,
-    private readonly tasks:     TasksRepository,
-    private readonly users:     UsersService,
-    private readonly usersRepo: UsersRepository,
+    private readonly repo:  CommentsRepository,
+    private readonly tasks: TasksRepository,
+    private readonly users: UsersService,
   ) {}
 
   async listForTask(taskId: string): Promise<Comment[]> {
@@ -34,20 +32,18 @@ export class CommentsService {
     return this.repo.countByTask(taskId)
   }
 
-  async create(taskId: string, dto: CreateCommentDto): Promise<Comment> {
+  async create(taskId: string, dto: CreateCommentDto, authorId: string): Promise<Comment> {
     await this.assertTaskExists(taskId)
-    const author = await this.resolveDefaultAuthor()
     return this.repo.insert({
       taskId,
-      authorId: author.id,
-      body:     dto.body.trim(),
+      authorId,
+      body: dto.body.trim(),
     })
   }
 
-  async update(id: string, dto: UpdateCommentDto): Promise<Comment> {
+  async update(id: string, dto: UpdateCommentDto, callerId: string): Promise<Comment> {
     const c = await this.findOne(id)
-    const author = await this.resolveDefaultAuthor()
-    if (c.authorId !== author.id) {
+    if (c.authorId !== callerId) {
       throw new ForbiddenException('Only the author can edit this comment')
     }
     if (!dto.body) return c
@@ -56,10 +52,9 @@ export class CommentsService {
     return updated
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(id: string, callerId: string): Promise<void> {
     const c = await this.findOne(id)
-    const author = await this.resolveDefaultAuthor()
-    if (c.authorId !== author.id) {
+    if (c.authorId !== callerId) {
       throw new ForbiddenException('Only the author can delete this comment')
     }
     await this.repo.remove(id)
@@ -74,10 +69,4 @@ export class CommentsService {
     if (!t) throw new NotFoundException(`Task ${taskId} not found`)
   }
 
-  private async resolveDefaultAuthor() {
-    const all = await this.usersRepo.findAll()
-    const author = all.find(u => u.role === 'owner') ?? all[0]
-    if (!author) throw new BadRequestException('No users seeded')
-    return author
-  }
 }

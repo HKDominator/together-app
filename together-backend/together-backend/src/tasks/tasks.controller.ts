@@ -2,8 +2,9 @@
 // REPLACE — adds @UseGuards + @RequirePermissions on each method.
 import {
   Body, Controller, Delete, Get, HttpCode, HttpStatus,
-  Param, Patch, Post, Query, UseGuards,
+  Param, Patch, Post, Query, Req, UseGuards,
 } from '@nestjs/common'
+import type { Request } from 'express'
 import { TasksService } from './tasks.service'
 import { CreateTaskDto } from './dto/create-task.dto'
 import { UpdateTaskDto } from './dto/update-task.dto'
@@ -29,7 +30,9 @@ export class TasksController {
   @Post()
   @RequirePermissions('task.create')
   @HttpCode(HttpStatus.CREATED)
-  create(@Body() dto: CreateTaskDto) { return this.tasks.create(dto) }
+  create(@Body() dto: CreateTaskDto, @Req() req: Request & { user: { id: string } }) {
+    return this.tasks.create(dto, req.user.id)
+  }
 
   @Patch(':id')
   @RequirePermissions('task.update')

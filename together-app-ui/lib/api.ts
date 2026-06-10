@@ -157,9 +157,10 @@ export async function graphql<T>(
   let res: Response
   try {
     res = await fetch(GRAPHQL_URL, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ query, variables }),
+      method:      'POST',
+      credentials: 'include',
+      headers:     { 'Content-Type': 'application/json' },
+      body:        JSON.stringify({ query, variables }),
     })
   } catch {
     throw new NetworkError()

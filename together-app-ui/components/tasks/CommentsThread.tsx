@@ -13,14 +13,15 @@
 import { useCallback, useEffect, useState, KeyboardEvent } from 'react'
 import { api, isNetworkError } from '@/lib/api'
 import { useTasks } from '@/context/TasksContext'
+import { useAuth } from '@/context/AuthContext'
 import type { Comment } from '@/types'
 
 interface Props { taskId: string }
 
-const CURRENT_USER_ID = 'u1'  // matches the backend's DEFAULT_AUTHOR
-
 export default function CommentsThread({ taskId }: Props) {
   const { users } = useTasks()
+  const { user: authUser } = useAuth()
+  const currentUserId = authUser?.id ?? ''
   const [comments, setComments] = useState<Comment[]>([])
   const [draft,    setDraft]    = useState('')
   const [loading,  setLoading]  = useState(true)
@@ -55,7 +56,7 @@ export default function CommentsThread({ taskId }: Props) {
     const tempId = `tmp_${Date.now()}`
     const nowIso = new Date().toISOString()
     const optimistic: Comment = {
-      id: tempId, taskId, authorId: CURRENT_USER_ID, body,
+      id: tempId, taskId, authorId: currentUserId, body,
       createdAt: nowIso, updatedAt: nowIso,
     }
     setComments(prev => [...prev, optimistic])
@@ -140,7 +141,7 @@ export default function CommentsThread({ taskId }: Props) {
       <div className="flex flex-col gap-4 mb-5">
         {comments.map(c => {
           const u = findUser(c.authorId)
-          const isMe = c.authorId === CURRENT_USER_ID
+          const isMe = c.authorId === currentUserId
           const isEdited = c.updatedAt !== c.createdAt
           return (
             <div key={c.id} className="flex items-start gap-3 group">
