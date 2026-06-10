@@ -72,11 +72,9 @@ export default function LoginPage() {
           <h3 className="font-display text-3xl font-bold mb-1">Welcome back ❤️</h3>
           <p className="text-sm text-gray-500 mb-6">Sign in to your shared workspace</p>
 
-          <div className="mb-6 p-3 rounded-lg bg-gray-50 text-xs text-gray-600 leading-relaxed">
-            <strong>Demo accounts:</strong><br />
-            ana@together.dev / anaana123 / PIN 1234 (admin, 3FA)<br />
-            dan@together.dev / dandan123 (user, 2FA only)
-          </div>
+          {/* SEC-07: the seeded demo credentials (real admin account + PIN) were
+              printed here and shipped in the client bundle — removed so they are
+              no longer handed to every visitor. */}
 
           {error && (
             <div className="mb-4 p-3 rounded-lg bg-red-50 text-sm text-red-700">{error}</div>

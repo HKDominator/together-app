@@ -9,6 +9,7 @@ import { AuthService } from './auth.service'
 import { AuthGuard } from './guards/auth.guard'
 import { PermissionsGuard } from './guards/permissions.guard'
 import { JwtUtil } from './jwt-util.service'
+import { WsAuthService } from './ws-auth.service'
 import { MailerService } from './mailer.service'
 import { Role } from './entities/role.entity'
 import { Permission } from './entities/permission.entity'
@@ -31,12 +32,12 @@ import { RecoveryService }    from './recovery.service'
   controllers: [AuthController, SessionsController, RecoveryController],
   providers: [
     AuthService, AuthGuard, PermissionsGuard,
-    JwtUtil, MailerService,
+    JwtUtil, WsAuthService, MailerService,
     SessionsService, RecoveryService,
   ],
   exports: [
     AuthService, AuthGuard, PermissionsGuard,
-    JwtUtil, MailerService,
+    JwtUtil, WsAuthService, MailerService,
     TypeOrmModule,
   ],
 })

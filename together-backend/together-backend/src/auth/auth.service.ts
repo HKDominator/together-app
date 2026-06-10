@@ -41,6 +41,7 @@ export type LoginStageResult =
 
 const OTP_TTL_SEC      = 10 * 60   // 10 minutes
 const MAX_OTP_ATTEMPTS = 5
+const MAX_PIN_ATTEMPTS = 5         // SEC-06: cap PIN tries so it can't be brute-forced
 
 @Injectable()
 export class AuthService {
@@ -204,6 +205,12 @@ export class AuthService {
     if (attempt.expiresAt.getTime() < Date.now()) {
       await this.attempts.delete(attempt.id)
       throw new BadRequestException('Login attempt expired — start again')
+    }
+    // SEC-06: enforce the same brute-force cap verifyOtp applies. Without this
+    // the 4–6 digit PIN could be tried indefinitely inside the attempt window.
+    if (attempt.attempts >= MAX_PIN_ATTEMPTS) {
+      await this.attempts.delete(attempt.id)
+      throw new UnauthorizedException('Too many wrong PINs — start again')
     }
 
     const user = await this.users.findOne({

@@ -2,7 +2,7 @@
 // REPLACE — registration, multi-step login, refresh, logout, /me.
 // Sessions list + revoke endpoints live in sessions.controller.ts (Silver).
 import {
-  Body, Controller, Get, HttpCode, HttpStatus, Post, Req, Res, UseGuards,
+  Body, Controller, Get, HttpCode, HttpStatus, NotFoundException, Post, Req, Res, UseGuards,
 } from '@nestjs/common'
 import type { Request, Response } from 'express'
 import { AuthService } from './auth.service'
@@ -133,10 +133,13 @@ export class AuthController {
   }
 
   // ── GET /auth/dev/inbox — lab-only OTP retrieval ────────────────
-  // Only available when MAIL_DEV=true. Used by tests so they don't need
-  // to scrape stdout for the OTP.
+  // Hard-gated: only reachable when the mailer is explicitly in dev mode
+  // (MAIL_DEV=true, non-production). Outside that it behaves as if the route
+  // does not exist, so it can never be used as an OTP / reset-code oracle
+  // in production (SEC-02).
   @Get('dev/inbox')
   devInbox(@Req() req: Request) {
+    if (!this.mailer.isDev()) throw new NotFoundException()
     const email = (req.query.email as string) || ''
     if (!email) return { message: 'pass ?email=foo@bar' }
     return this.mailer.peek(email) ?? { empty: true }
