@@ -125,7 +125,7 @@ export default function CommentsThread({ taskId }: Props) {
     <div className="mt-8">
       <p className="text-xs font-semibold text-gray-500 mb-4 flex items-center gap-2">
         Conversation
-        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-cr-pale text-cr text-[10px] font-bold">
+        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-cr-pale text-cr text-xs font-bold">
           {comments.length}
         </span>
         <span className="flex-1 h-px bg-gray-100" />

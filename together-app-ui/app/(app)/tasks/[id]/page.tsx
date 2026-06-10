@@ -167,7 +167,7 @@ export default function TaskDetailPage({ params }: Props) {
               <div className="flex items-center gap-2">
                 {assignee && (
                   <div className="w-5 h-5 rounded-full flex items-center justify-center text-white flex-shrink-0"
-                    style={{ background: assignee.avatarColor, fontSize: 8 }}>
+                    style={{ background: assignee.avatarColor, fontSize: 12 }}>
                     {assignee.initials}
                   </div>
                 )}
@@ -195,7 +195,7 @@ export default function TaskDetailPage({ params }: Props) {
                   className="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-lg border border-gray-200 hover:border-crimson text-sm text-gray-700 transition-colors"
                 >
                   <div className="w-6 h-6 rounded-full flex items-center justify-center text-white flex-shrink-0"
-                    style={{ background: u.avatarColor, fontSize: 9 }}>
+                    style={{ background: u.avatarColor, fontSize: 12 }}>
                     {u.initials}
                   </div>
                   Assign to {u.name}
@@ -279,7 +279,7 @@ function ActivityItem({ user, action, time }: ActivityItemProps) {
   return (
     <div className="flex items-start gap-3">
       <div className="w-7 h-7 rounded-full flex items-center justify-center text-white flex-shrink-0 mt-0.5"
-        style={{ background: user.avatarColor, fontSize: 9 }}>
+        style={{ background: user.avatarColor, fontSize: 12 }}>
         {user.initials}
       </div>
       <div>

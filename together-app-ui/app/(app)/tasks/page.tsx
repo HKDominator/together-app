@@ -252,7 +252,7 @@ export default function TasksPage() {
                   <div className="flex items-center gap-2">
                     {u && (
                       <div className="w-6 h-6 rounded-full flex items-center justify-center text-white flex-shrink-0"
-                        style={{ background: u.avatarColor, fontSize: 9 }}>
+                        style={{ background: u.avatarColor, fontSize: 12 }}>
                         {u.initials}
                       </div>
                     )}

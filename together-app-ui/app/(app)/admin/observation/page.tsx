@@ -128,7 +128,7 @@ export default function ObservationPage() {
                 {ai?.rationale && (
                   <div className="text-xs italic text-gray-600 mb-2">
                     “{ai.rationale}”
-                    {ai.model && <span className="text-[10px] text-gray-400 ml-2">— {ai.model}</span>}
+                    {ai.model && <span className="text-xs text-gray-400 ml-2">— {ai.model}</span>}
                   </div>
                 )}
 
@@ -141,7 +141,7 @@ export default function ObservationPage() {
                   </details>
                 )}
 
-                <p className="text-[10px] text-gray-400 mt-2">
+                <p className="text-xs text-gray-400 mt-2">
                   Flagged {new Date(o.flaggedAt).toLocaleString()}
                 </p>
               </div>

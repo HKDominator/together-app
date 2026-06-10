@@ -63,7 +63,7 @@ function DonutChart({ data }: { data: { label: string; value: number; color: str
           {total}
         </text>
         <text x="60" y="70" textAnchor="middle"
-          style={{ fontFamily: 'var(--font-body)', fontSize: 9, fill: '#8FA3B1' }}>
+          style={{ fontFamily: 'var(--font-body)', fontSize: 12, fill: '#8FA3B1' }}>
           tasks
         </text>
       </svg>
@@ -352,7 +352,7 @@ export default function StatisticsPage() {
                 <div className="flex items-center gap-2">
                   {u && (
                     <div className="w-6 h-6 rounded-full flex items-center justify-center text-white shrink-0"
-                      style={{ background: u.avatarColor, fontSize: 9 }}>
+                      style={{ background: u.avatarColor, fontSize: 12 }}>
                       {u.initials}
                     </div>
                   )}
