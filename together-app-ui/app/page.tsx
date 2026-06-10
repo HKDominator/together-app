@@ -15,8 +15,7 @@ export default function LandingPage() {
 
       {/* ── Hero ─────────────────────────────────────────── */}
       <section
-        className="relative flex flex-col items-center justify-center min-h-screen px-6 py-24 overflow-hidden"
-        style={{ background: '#2C3E50' }}
+        className="relative flex flex-col items-center justify-center min-h-screen px-6 py-24 overflow-hidden bg-sl"
       >
         <div className="absolute top-[-120px] right-[-160px] w-[520px] h-[520px] rounded-full border border-white/5 pointer-events-none" />
         <div className="absolute bottom-[-60px] left-[-80px] w-[300px] h-[300px] rounded-full pointer-events-none"
@@ -102,8 +101,7 @@ export default function LandingPage() {
 
       {/* ── Footer ───────────────────────────────────────── */}
       <footer
-        className="px-16 py-12 flex items-center justify-between"
-        style={{ background: '#1A2533' }}
+        className="px-16 py-12 flex items-center justify-between bg-sl"
       >
         <div>
           <div className="font-display text-xl font-bold text-cm">❤️ Together</div>

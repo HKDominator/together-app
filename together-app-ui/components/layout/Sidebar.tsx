@@ -19,8 +19,7 @@ export default function Sidebar() {
 
   return (
     <aside
-      className="w-60 shrink-0 flex flex-col h-screen sticky top-0"
-      style={{ background: "#2C3E50" }}
+      className="w-60 shrink-0 flex flex-col h-screen sticky top-0 bg-sl"
     >
       {/* Logo */}
       <div

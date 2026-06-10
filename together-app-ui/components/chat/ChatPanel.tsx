@@ -82,7 +82,7 @@ export default function ChatPanel() {
         </button>
       ) : (
         <div className="w-80 h-[28rem] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-gray-200">
-          <div className="px-4 py-3 flex items-center justify-between border-b" style={{ background: '#2C3E50' }}>
+          <div className="px-4 py-3 flex items-center justify-between border-b bg-sl">
             <span className="text-white text-sm font-semibold">Workspace chat</span>
             <button onClick={() => setOpen(false)} className="text-white/70 hover:text-white text-lg">×</button>
           </div>
