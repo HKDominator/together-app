@@ -189,8 +189,8 @@ export default function TaskFormModal({ isOpen, task, onClose, onSubmit }: Props
             </button>
             <button
               type="submit"
-              className="px-6 py-2.5 rounded-lg text-white text-sm font-semibold transition-all hover:-translate-y-0.5"
-              style={{ background: '#C0392B', boxShadow: '0 3px 12px rgba(192,57,43,0.3)' }}
+              className="px-6 py-2.5 rounded-lg text-white text-sm font-semibold transition-all hover:-translate-y-0.5 bg-cr"
+              style={{ boxShadow: '0 3px 12px rgba(192,57,43,0.3)' }}
             >
               {mode === 'create' ? 'Create Task' : 'Save Changes'}
             </button>

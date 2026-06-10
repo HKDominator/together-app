@@ -44,8 +44,8 @@ export default function LandingPage() {
         <div className="relative flex flex-wrap gap-4 justify-center">
           <Link
             href="/tasks"
-            className="px-9 py-3.5 rounded-full text-white font-semibold text-sm tracking-wide transition-all hover:-translate-y-0.5"
-            style={{ background: '#C0392B', boxShadow: '0 4px 20px rgba(192,57,43,0.4)' }}
+            className="px-9 py-3.5 rounded-full text-white font-semibold text-sm tracking-wide transition-all hover:-translate-y-0.5 bg-cr"
+            style={{ boxShadow: '0 4px 20px rgba(192,57,43,0.4)' }}
           >
             Open App →
           </Link>
@@ -111,8 +111,8 @@ export default function LandingPage() {
         </div>
         <Link
           href="/login"
-          className="px-8 py-3 rounded-full text-white font-semibold text-sm transition-all hover:-translate-y-0.5"
-          style={{ background: '#C0392B', boxShadow: '0 4px 16px rgba(192,57,43,0.3)' }}
+          className="px-8 py-3 rounded-full text-white font-semibold text-sm transition-all hover:-translate-y-0.5 bg-cr"
+          style={{ boxShadow: '0 4px 16px rgba(192,57,43,0.3)' }}
         >
           Get Started Free →
         </Link>

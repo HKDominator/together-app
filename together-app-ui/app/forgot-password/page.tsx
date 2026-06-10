@@ -49,8 +49,7 @@ export default function ForgotPasswordPage() {
               value={email} onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com" error="" />
             <button type="submit" disabled={loading}
-              className="w-full py-3 rounded-lg text-white text-sm font-semibold disabled:opacity-70"
-              style={{ background: '#C0392B' }}>
+              className="w-full py-3 rounded-lg text-white text-sm font-semibold disabled:opacity-70 bg-cr">
               {loading ? 'Sending…' : 'Send recovery code →'}
             </button>
             <p className="text-center text-sm text-gray-500">

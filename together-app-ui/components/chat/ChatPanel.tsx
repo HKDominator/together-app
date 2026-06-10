@@ -75,8 +75,7 @@ export default function ChatPanel() {
       {!open ? (
         <button
           onClick={() => setOpen(true)}
-          className="px-5 py-3 rounded-full text-white text-sm font-semibold shadow-lg"
-          style={{ background: '#C0392B' }}
+          className="px-5 py-3 rounded-full text-white text-sm font-semibold shadow-lg bg-cr"
         >
           💬 Chat
         </button>
@@ -126,8 +125,7 @@ export default function ChatPanel() {
               placeholder="Type a message…"
               className="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-200 focus:border-red-400 focus:outline-none"
             />
-            <button onClick={send} className="px-4 py-2 rounded-lg text-white text-sm font-semibold"
-              style={{ background: '#C0392B' }}>Send</button>
+            <button onClick={send} className="px-4 py-2 rounded-lg text-white text-sm font-semibold bg-cr">Send</button>
           </div>
         </div>
       )}

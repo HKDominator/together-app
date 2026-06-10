@@ -56,7 +56,7 @@ export default function Sidebar() {
               style={{
                 color: active ? "#fff" : "rgba(255,255,255,0.55)",
                 background: active ? "rgba(192,57,43,0.15)" : "transparent",
-                borderColor: active ? "#C0392B" : "transparent",
+                borderColor: active ? "var(--color-cr)" : "transparent",
               }}
             >
               <span className="text-base w-5 text-center">{icon}</span>
@@ -84,7 +84,7 @@ export default function Sidebar() {
                   ? "rgba(192,57,43,0.15)"
                   : "transparent",
                 borderColor: pathname.startsWith("/admin")
-                  ? "#C0392B"
+                  ? "var(--color-cr)"
                   : "transparent",
               }}
             >

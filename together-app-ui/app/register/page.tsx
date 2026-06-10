@@ -83,8 +83,7 @@ export default function RegisterPage() {
               value={form.securityPin} onChange={handleChange} error={errors.securityPin} placeholder="4–6 digits" />
 
             <button type="submit" disabled={loading}
-              className="w-full py-3 rounded-lg text-white text-sm font-semibold disabled:opacity-70 mt-2"
-              style={{ background: '#C0392B' }}>
+              className="w-full py-3 rounded-lg text-white text-sm font-semibold disabled:opacity-70 mt-2 bg-cr">
               {loading ? 'Creating account…' : 'Create account →'}
             </button>
           </form>

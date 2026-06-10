@@ -173,7 +173,6 @@ export default function CommentsThread({ taskId }: Props) {
                       <button
                         onClick={handleSaveEdit}
                         className="px-3 py-1.5 rounded-md bg-cr text-white font-semibold hover:opacity-90"
-                        style={{ background: '#C0392B' }}
                       >
                         Save
                       </button>
@@ -227,8 +226,8 @@ export default function CommentsThread({ taskId }: Props) {
           <button
             onClick={handleAdd}
             disabled={!draft.trim()}
-            className="px-4 py-2 rounded-lg text-white text-sm font-semibold transition-all hover:-translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{ background: '#C0392B', boxShadow: '0 3px 12px rgba(192,57,43,0.3)' }}
+            className="px-4 py-2 rounded-lg text-white text-sm font-semibold transition-all hover:-translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed bg-cr"
+            style={{ boxShadow: '0 3px 12px rgba(192,57,43,0.3)' }}
           >
             Send →
           </button>

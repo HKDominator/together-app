@@ -141,8 +141,8 @@ export default function TasksPage() {
 
             <button
               onClick={openCreate}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-white text-sm font-semibold transition-all hover:-translate-y-0.5 active:scale-95"
-              style={{ background: '#C0392B', boxShadow: '0 3px 12px rgba(192,57,43,0.3)' }}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-white text-sm font-semibold transition-all hover:-translate-y-0.5 active:scale-95 bg-cr"
+              style={{ boxShadow: '0 3px 12px rgba(192,57,43,0.3)' }}
             >
               ＋ New Task
             </button>

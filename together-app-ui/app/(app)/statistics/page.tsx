@@ -97,8 +97,8 @@ function BarChart({ anaData, danData, labels }: {
           <div key={label} className="flex-1 flex flex-col items-center gap-1">
             <div className="flex items-end gap-0.5 w-full justify-center" style={{ height: H }}>
               <div
-                className="flex-1 rounded-t-sm transition-all duration-700"
-                style={{ height: `${(anaData[i] / maxVal) * H}px`, background: '#C0392B', opacity: 0.85, minHeight: 2 }}
+                className="flex-1 rounded-t-sm transition-all duration-700 bg-cr"
+                style={{ height: `${(anaData[i] / maxVal) * H}px`, opacity: 0.85, minHeight: 2 }}
               />
               <div
                 className="flex-1 rounded-t-sm transition-all duration-700"
@@ -111,7 +111,7 @@ function BarChart({ anaData, danData, labels }: {
       </div>
       <div className="flex gap-4 text-xs">
         <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-sm" style={{ background: '#C0392B' }} />
+          <div className="w-2.5 h-2.5 rounded-sm bg-cr" />
           <span className="text-gray-500">Ana</span>
         </div>
         <div className="flex items-center gap-1.5">

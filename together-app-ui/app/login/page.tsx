@@ -89,8 +89,7 @@ export default function LoginPage() {
                 value={password} onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                 placeholder="••••••••" error="" />
               <button type="submit" disabled={loading}
-                className="w-full py-3 rounded-lg text-white text-sm font-semibold disabled:opacity-70"
-                style={{ background: '#C0392B' }}>
+                className="w-full py-3 rounded-lg text-white text-sm font-semibold disabled:opacity-70 bg-cr">
                 {loading ? 'Signing in…' : 'Continue →'}
               </button>
               <div className="text-center text-xs text-gray-500 mt-1">
@@ -117,8 +116,7 @@ export default function LoginPage() {
                 value={otp} onChange={(e: ChangeEvent<HTMLInputElement>) => setOtp(e.target.value)}
                 placeholder="123456" error="" />
               <button type="submit" disabled={loading}
-                className="w-full py-3 rounded-lg text-white text-sm font-semibold disabled:opacity-70"
-                style={{ background: '#C0392B' }}>
+                className="w-full py-3 rounded-lg text-white text-sm font-semibold disabled:opacity-70 bg-cr">
                 {loading ? 'Verifying…' : 'Verify →'}
               </button>
               <button type="button" onClick={() => setStep('password')}
@@ -135,8 +133,7 @@ export default function LoginPage() {
                 value={pin} onChange={(e: ChangeEvent<HTMLInputElement>) => setPin(e.target.value)}
                 placeholder="••••" error="" />
               <button type="submit" disabled={loading}
-                className="w-full py-3 rounded-lg text-white text-sm font-semibold disabled:opacity-70"
-                style={{ background: '#C0392B' }}>
+                className="w-full py-3 rounded-lg text-white text-sm font-semibold disabled:opacity-70 bg-cr">
                 {loading ? 'Signing in…' : 'Sign in →'}
               </button>
             </form>
