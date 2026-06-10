@@ -3,13 +3,18 @@
 import {
   Args, ID, Int, Mutation, Parent, Query, ResolveField, Resolver,
 } from '@nestjs/graphql'
+import { UseGuards } from '@nestjs/common'
 import { TasksService } from '../tasks/tasks.service'
 import { CommentsService } from '../comments/comments.service'
 import { TaskState } from '../tasks/entities/task.entity'
 import { CommentGQL, PaginatedTasksGQL, TaskGQL } from './models'
 import { CreateTaskInput, TasksQueryInput, UpdateTaskInput } from './inputs'
+import { AuthGuard } from '../auth/guards/auth.guard'
+import { PermissionsGuard } from '../auth/guards/permissions.guard'
+import { RequirePermissions } from '../auth/decorators/require-permissions.decorator'
 
 @Resolver(() => TaskGQL)
+@UseGuards(AuthGuard, PermissionsGuard)   // SEC-01: mirror the REST tasks controller
 export class TasksResolver {
   constructor(
     private readonly tasks:    TasksService,
@@ -17,6 +22,7 @@ export class TasksResolver {
   ) {}
 
   @Query(() => PaginatedTasksGQL, { name: 'tasks' })
+  @RequirePermissions('task.read')
   async listTasks(
     @Args('query', { nullable: true }) query?: TasksQueryInput,
   ): Promise<PaginatedTasksGQL> {
@@ -24,16 +30,19 @@ export class TasksResolver {
   }
 
   @Query(() => TaskGQL, { name: 'task', nullable: true })
+  @RequirePermissions('task.read')
   async getTask(@Args('id', { type: () => ID }) id: string): Promise<TaskGQL> {
     return (await this.tasks.findOne(id)) as unknown as TaskGQL
   }
 
   @Mutation(() => TaskGQL)
+  @RequirePermissions('task.create')
   async createTask(@Args('input') input: CreateTaskInput): Promise<TaskGQL> {
     return (await this.tasks.create(input)) as unknown as TaskGQL
   }
 
   @Mutation(() => TaskGQL)
+  @RequirePermissions('task.update')
   async updateTask(
     @Args('id',    { type: () => ID }) id: string,
     @Args('input')                     input: UpdateTaskInput,
@@ -42,6 +51,7 @@ export class TasksResolver {
   }
 
   @Mutation(() => TaskGQL)
+  @RequirePermissions('task.update')
   async setTaskState(
     @Args('id',       { type: () => ID })        id: string,
     @Args('newState', { type: () => TaskState }) newState: TaskState,
@@ -50,6 +60,7 @@ export class TasksResolver {
   }
 
   @Mutation(() => Boolean)
+  @RequirePermissions('task.delete')
   async deleteTask(@Args('id', { type: () => ID }) id: string): Promise<boolean> {
     await this.tasks.remove(id)
     return true

@@ -12,6 +12,7 @@ import { User } from '../../users/entities/user.entity'
 import { Session } from '../entities/session.entity'
 import { JwtUtil } from '../jwt-util.service'
 import { ConfigService } from '@nestjs/config'
+import { getRequestFromContext } from './exec-context'
 
 export const SESSION_COOKIE = 'together_session'   // kept for backwards compat with tests
 export const ACCESS_COOKIE  = 'together_access'
@@ -32,7 +33,7 @@ export class AuthGuard implements CanActivate {
   }
 
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
-    const req = ctx.switchToHttp().getRequest()
+    const req = getRequestFromContext(ctx)
 
     const token =
       req.cookies?.[ACCESS_COOKIE] ??
