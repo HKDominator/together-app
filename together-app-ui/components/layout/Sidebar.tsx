@@ -25,7 +25,7 @@ export default function Sidebar() {
       {/* Logo */}
       <div
         className="px-6 py-7 border-b flex items-center gap-3"
-        style={{ borderColor: "rgba(232,213,183,0.08)" }}
+        style={{ borderColor: "rgba(255,255,255,0.08)" }}
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
           <path
@@ -42,7 +42,7 @@ export default function Sidebar() {
       <nav className="flex-1 py-5">
         <p
           className="px-6 mb-2 text-xs font-semibold uppercase tracking-widest"
-          style={{ color: "rgba(232,213,183,0.3)" }}
+          style={{ color: "rgba(255,255,255,0.3)" }}
         >
           Main
         </p>
@@ -55,7 +55,7 @@ export default function Sidebar() {
               href={href}
               className="flex items-center gap-3 px-6 py-2.5 text-sm font-medium transition-all border-l-2"
               style={{
-                color: active ? "#fff" : "rgba(232,213,183,0.55)",
+                color: active ? "#fff" : "rgba(255,255,255,0.55)",
                 background: active ? "rgba(192,57,43,0.15)" : "transparent",
                 borderColor: active ? "#C0392B" : "transparent",
               }}
@@ -70,7 +70,7 @@ export default function Sidebar() {
           <>
             <p
               className="px-6 mt-6 mb-2 text-xs font-semibold uppercase tracking-widest"
-              style={{ color: "rgba(232,213,183,0.3)" }}
+              style={{ color: "rgba(255,255,255,0.3)" }}
             >
               Administration
             </p>
@@ -80,7 +80,7 @@ export default function Sidebar() {
               style={{
                 color: pathname.startsWith("/admin")
                   ? "#fff"
-                  : "rgba(232,213,183,0.55)",
+                  : "rgba(255,255,255,0.55)",
                 background: pathname.startsWith("/admin")
                   ? "rgba(192,57,43,0.15)"
                   : "transparent",
@@ -104,11 +104,11 @@ export default function Sidebar() {
       {/* Workspace users */}
       <div
         className="px-6 py-5 border-t"
-        style={{ borderColor: "rgba(232,213,183,0.08)" }}
+        style={{ borderColor: "rgba(255,255,255,0.08)" }}
       >
         <p
           className="mb-3 text-xs uppercase tracking-widest font-semibold"
-          style={{ color: "rgba(232,213,183,0.3)" }}
+          style={{ color: "rgba(255,255,255,0.3)" }}
         >
           Workspace
         </p>
@@ -123,13 +123,13 @@ export default function Sidebar() {
             <div className="flex-1 min-w-0">
               <p
                 className="text-xs font-semibold truncate"
-                style={{ color: "rgba(232,213,183,0.85)" }}
+                style={{ color: "rgba(255,255,255,0.85)" }}
               >
                 {u.name}
               </p>
               <p
                 className="text-xs capitalize"
-                style={{ color: "rgba(232,213,183,0.35)" }}
+                style={{ color: "rgba(255,255,255,0.35)" }}
               >
                 {u.role}
               </p>

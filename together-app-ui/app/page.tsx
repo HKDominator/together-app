@@ -53,7 +53,7 @@ export default function LandingPage() {
           <Link
             href="/login"
             className="px-9 py-3.5 rounded-full font-medium text-sm text-cm transition-all"
-            style={{ border: '1.5px solid rgba(232,213,183,0.35)' }}
+            style={{ border: '1.5px solid rgba(255,255,255,0.35)' }}
           >
             Sign In
           </Link>
@@ -107,7 +107,7 @@ export default function LandingPage() {
       >
         <div>
           <div className="font-display text-xl font-bold text-cm">❤️ Together</div>
-          <p className="text-xs mt-1" style={{ color: 'rgba(232,213,183,0.35)' }}>
+          <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
             A private space for couples to plan, organize, and grow.
           </p>
         </div>
