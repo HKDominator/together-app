@@ -66,32 +66,31 @@ export default function Sidebar() {
 
         {isAdmin && (
           <>
-            <p
-              className="px-6 mt-6 mb-2 text-xs font-semibold text-white/30"
-              style={{ color: "rgba(255,255,255,0.3)" }}
-            >
+            <p className="px-6 mt-6 mb-2 text-xs font-semibold text-white/30">
               Administration
             </p>
-            <Link
-              href="/admin/users"
-              className="flex items-center gap-3 px-6 py-2.5 text-sm font-medium transition-all border-l-2"
-              style={{
-                color: pathname.startsWith("/admin")
-                  ? "#fff"
-                  : "rgba(255,255,255,0.55)",
-                background: pathname.startsWith("/admin")
-                  ? "rgba(192,57,43,0.15)"
-                  : "transparent",
-                borderColor: pathname.startsWith("/admin")
-                  ? "var(--color-cr)"
-                  : "transparent",
-              }}
-            >
-              <Link href="/admin/logs">Admin Logs</Link>
-              <Link href="/admin/observation">Anomaly Detection</Link>
-              <span className="text-base w-5 text-center">🔐</span>
-              Users
-            </Link>
+            {[
+              { href: "/admin/users",       icon: "🔐", label: "Users" },
+              { href: "/admin/logs",        icon: "📋", label: "Admin Logs" },
+              { href: "/admin/observation", icon: "🔍", label: "Anomaly Detection" },
+            ].map(({ href, icon, label }) => {
+              const active = pathname === href || pathname.startsWith(href)
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className="flex items-center gap-3 px-6 py-2.5 text-sm font-medium transition-all border-l-2"
+                  style={{
+                    color:       active ? "#fff" : "rgba(255,255,255,0.55)",
+                    background:  active ? "rgba(192,57,43,0.15)" : "transparent",
+                    borderColor: active ? "var(--color-cr)"      : "transparent",
+                  }}
+                >
+                  <span className="text-base w-5 text-center">{icon}</span>
+                  {label}
+                </Link>
+              )
+            })}
           </>
         )}
       </nav>
