@@ -158,7 +158,7 @@ export default function TasksPage() {
             { label: 'Overdue',     value: overdue,    sub: 'need attention',         barW: `${Math.round(overdue/total*100)||0}%`,                      barC: '#E74C3C' },
           ].map(s => (
             <div key={s.label} className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm card-hover">
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">{s.label}</p>
+              <p className="text-xs font-semibold text-gray-500 mb-1">{s.label}</p>
               <p className="font-display text-3xl font-bold text-gray-800 leading-none mb-1">{s.value}</p>
               <p className="text-xs text-gray-400 mb-3">{s.sub}</p>
               <div className="h-1 bg-gray-100 rounded-full overflow-hidden">

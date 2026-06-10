@@ -123,7 +123,7 @@ export default function CommentsThread({ taskId }: Props) {
 
   return (
     <div className="mt-8">
-      <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-4 flex items-center gap-2">
+      <p className="text-xs font-semibold text-gray-500 mb-4 flex items-center gap-2">
         Conversation
         <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-cr-pale text-cr text-[10px] font-bold">
           {comments.length}

@@ -91,7 +91,7 @@ export default function TaskDetailPage({ params }: Props) {
             </div>
           )}
 
-          <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-4 flex items-center gap-2">
+          <p className="text-xs font-semibold text-gray-500 mb-4 flex items-center gap-2">
             State Flow
             <span className="flex-1 h-px bg-gray-100" />
           </p>
@@ -131,7 +131,7 @@ export default function TaskDetailPage({ params }: Props) {
             )}
           </div>
 
-          <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-4 flex items-center gap-2">
+          <p className="text-xs font-semibold text-gray-500 mb-4 flex items-center gap-2">
             Actions
             <span className="flex-1 h-px bg-gray-100" />
           </p>
@@ -144,7 +144,7 @@ export default function TaskDetailPage({ params }: Props) {
                                                 <ActionBtn color="red"     onClick={() => setDeleteOpen(true)}>🗑 Delete</ActionBtn>
           </div>
 
-          <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-4 flex items-center gap-2">
+          <p className="text-xs font-semibold text-gray-500 mb-4 flex items-center gap-2">
             Activity
             <span className="flex-1 h-px bg-gray-100" />
           </p>
@@ -162,7 +162,7 @@ export default function TaskDetailPage({ params }: Props) {
 
         <div className="space-y-4">
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-            <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-4">Task Details</p>
+            <p className="text-xs font-semibold text-gray-500 mb-4">Task Details</p>
             <DetailRow label="Assigned to">
               <div className="flex items-center gap-2">
                 {assignee && (
@@ -186,7 +186,7 @@ export default function TaskDetailPage({ params }: Props) {
 
           {!isTerminal && (
             <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-              <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-3">Re-assign</p>
+              <p className="text-xs font-semibold text-gray-500 mb-3">Re-assign</p>
               <p className="text-xs text-gray-500 mb-3">Transfer this task to your partner</p>
               {users.filter(u => u.id !== task.assigneeId).map(u => (
                 <button

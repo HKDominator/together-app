@@ -40,8 +40,7 @@ export default function Sidebar() {
       {/* Nav */}
       <nav className="flex-1 py-5">
         <p
-          className="px-6 mb-2 text-xs font-semibold uppercase tracking-widest"
-          style={{ color: "rgba(255,255,255,0.3)" }}
+          className="px-6 mb-2 text-xs font-semibold text-white/30"
         >
           Main
         </p>
@@ -68,7 +67,7 @@ export default function Sidebar() {
         {isAdmin && (
           <>
             <p
-              className="px-6 mt-6 mb-2 text-xs font-semibold uppercase tracking-widest"
+              className="px-6 mt-6 mb-2 text-xs font-semibold text-white/30"
               style={{ color: "rgba(255,255,255,0.3)" }}
             >
               Administration
@@ -106,8 +105,7 @@ export default function Sidebar() {
         style={{ borderColor: "rgba(255,255,255,0.08)" }}
       >
         <p
-          className="mb-3 text-xs uppercase tracking-widest font-semibold"
-          style={{ color: "rgba(255,255,255,0.3)" }}
+          className="mb-3 text-xs font-semibold text-white/30"
         >
           Workspace
         </p>
