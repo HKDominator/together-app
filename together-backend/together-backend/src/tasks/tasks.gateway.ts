@@ -7,6 +7,7 @@ import {
 } from '@nestjs/websockets'
 import type { Server, Socket } from 'socket.io'
 import { Task } from './entities/task.entity'
+import { WsAuthService } from '../auth/ws-auth.service'
 
 /**
  * WebSocket gateway for broadcasting task mutations.
@@ -35,8 +36,19 @@ export class TasksGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server!: Server
 
-  handleConnection(client: Socket) {
-    this.log.log(`client connected: ${client.id}`)
+  constructor(private readonly wsAuth: WsAuthService) {}
+
+  async handleConnection(client: Socket) {
+    // SEC-04: authenticate the handshake. Unauthenticated clients are dropped
+    // before they can receive any task-mutation broadcast (eavesdropping).
+    const user = await this.wsAuth.authenticate(client)
+    if (!user) {
+      this.log.warn(`client ${client.id} rejected — unauthenticated`)
+      client.disconnect(true)
+      return
+    }
+    client.data.user = user
+    this.log.log(`client connected: ${client.id} (${user.id})`)
   }
 
   handleDisconnect(client: Socket) {

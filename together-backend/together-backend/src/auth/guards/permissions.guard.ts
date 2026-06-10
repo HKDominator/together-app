@@ -6,6 +6,7 @@ import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@
 import { Reflector } from '@nestjs/core'
 import { PERMISSIONS_KEY } from '../decorators/require-permissions.decorator'
 import type { User } from '../../users/entities/user.entity'
+import { getRequestFromContext } from './exec-context'
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
@@ -17,7 +18,7 @@ export class PermissionsGuard implements CanActivate {
     ]) ?? []
     if (required.length === 0) return true   // route has no permission requirement
 
-    const user: User | undefined = ctx.switchToHttp().getRequest().user
+    const user: User | undefined = getRequestFromContext(ctx)?.user
     if (!user) throw new ForbiddenException('Not authenticated')
 
     const have = new Set(

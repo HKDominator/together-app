@@ -29,7 +29,17 @@ export class JwtUtil {
   private readonly refreshTtlSec: number
 
   constructor(cfg: ConfigService) {
-    this.secret        = cfg.get<string>('JWT_SECRET',        'dev-only-secret-change-me')
+    // Fail fast: never fall back to an in-repo secret. A missing or placeholder
+    // JWT_SECRET would let anyone forge an admin token, so refuse to boot
+    // instead of silently signing with a publicly-known key (SEC-03).
+    const secret = cfg.get<string>('JWT_SECRET')
+    if (!secret || secret === 'dev-only-secret-change-me') {
+      throw new Error(
+        'JWT_SECRET is not set (or is the in-repo placeholder). Set a strong, ' +
+        'high-entropy JWT_SECRET before starting the server.',
+      )
+    }
+    this.secret        = secret
     this.accessTtlSec  = Number(cfg.get('JWT_ACCESS_TTL_SEC',  '900'))   // 15 min
     this.refreshTtlSec = Number(cfg.get('JWT_REFRESH_TTL_SEC', '604800')) // 7 days
   }

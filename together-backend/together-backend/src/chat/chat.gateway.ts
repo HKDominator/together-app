@@ -3,10 +3,11 @@
 // joins room 'workspace' (the couple shares one room) — easy to extend
 // to multi-room later.
 //
-// Auth note: the assignment says "no need for tokens yet". So we trust
-// the senderId in the payload — it's read from the auth cookie on the
-// REST `/chat/send` route in production, but for the WS we accept it
-// in the message body. This is enough for Silver's persistence focus.
+// Auth note (SEC-04): every socket handshake is authenticated against the
+// access token (WsAuthService). The sender identity is derived from the
+// authenticated user — the payload senderId/senderName are ignored so a
+// client can no longer impersonate the other partner. Message bodies are
+// length-bounded.
 import { Logger } from '@nestjs/common'
 import {
   WebSocketGateway, WebSocketServer,
@@ -15,11 +16,15 @@ import {
 } from '@nestjs/websockets'
 import type { Server, Socket } from 'socket.io'
 import { ChatService } from './chat.service'
+import { WsAuthService } from '../auth/ws-auth.service'
+import type { User } from '../users/entities/user.entity'
+
+// Hard cap on a single chat message. Anything longer is truncated before it
+// is persisted or broadcast.
+const MAX_MESSAGE_LEN = 4000
 
 interface IncomingMessage {
-  roomId:       string
-  senderId:     string
-  senderName:   string
+  roomId?:      string
   senderColor?: string
   body:         string
 }
@@ -39,12 +44,21 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private readonly log = new Logger(ChatGateway.name)
   @WebSocketServer() server!: Server
 
-  constructor(private readonly chat: ChatService) {}
+  constructor(
+    private readonly chat: ChatService,
+    private readonly wsAuth: WsAuthService,
+  ) {}
 
-  handleConnection(client: Socket) {
-    // Default-join the workspace room. Extend with handshake auth later.
+  async handleConnection(client: Socket) {
+    const user = await this.wsAuth.authenticate(client)
+    if (!user) {
+      this.log.warn(`chat client ${client.id} rejected — unauthenticated`)
+      client.disconnect(true)
+      return
+    }
+    client.data.user = user
     client.join('workspace')
-    this.log.log(`chat client ${client.id} joined 'workspace'`)
+    this.log.log(`chat client ${client.id} (${user.id}) joined 'workspace'`)
   }
   handleDisconnect(client: Socket) {
     this.log.log(`chat client ${client.id} disconnected`)
@@ -55,14 +69,18 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() payload: IncomingMessage,
     @ConnectedSocket() client: Socket,
   ) {
-    if (!payload?.body?.trim() || !payload.senderId) return
+    const user = client.data?.user as User | undefined
+    if (!user) { client.disconnect(true); return }
+
+    const body = (payload?.body ?? '').trim().slice(0, MAX_MESSAGE_LEN)
+    if (!body) return
 
     const saved = await this.chat.insert({
-      roomId:      payload.roomId || 'workspace',
-      senderId:    payload.senderId,
-      senderName:  payload.senderName  ?? 'Unknown',
-      senderColor: payload.senderColor ?? '#888',
-      body:        payload.body,
+      roomId:      'workspace',
+      senderId:    user.id,
+      senderName:  user.name,
+      senderColor: user.avatarColor ?? '#888',
+      body,
     })
     // Broadcast to everyone in the room (including sender — gives them
     // confirmation + canonical id/timestamp from the server).
@@ -71,10 +89,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('chat:typing')
   onTyping(
-    @MessageBody() payload: { roomId: string; senderId: string; senderName: string },
+    @MessageBody() _payload: unknown,
     @ConnectedSocket() client: Socket,
   ) {
-    // Just relay — typing indicators don't need persistence.
-    client.to(payload.roomId || 'workspace').emit('chat:typing', payload)
+    // Just relay — typing indicators don't need persistence. Identity comes
+    // from the authenticated socket, not the client payload.
+    const user = client.data?.user as User | undefined
+    if (!user) return
+    client.to('workspace').emit('chat:typing', { senderId: user.id, senderName: user.name })
   }
 }

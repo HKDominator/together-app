@@ -13,7 +13,12 @@ export class MailerService {
   private readonly inbox = new Map<string, { subject: string; body: string; at: Date }[]>()
 
   constructor(cfg: ConfigService) {
-    this.devMode = cfg.get<string>('MAIL_DEV', 'true') === 'true'
+    // Fail closed: the dev inbox / code-echo path is OFF unless MAIL_DEV is
+    // explicitly 'true' AND we are not running in production. Production can
+    // never open this oracle even if MAIL_DEV is mis-set (SEC-02).
+    const explicitlyEnabled = cfg.get<string>('MAIL_DEV', 'false') === 'true'
+    const isProd = cfg.get<string>('NODE_ENV', '') === 'production'
+    this.devMode = explicitlyEnabled && !isProd
   }
 
   async send(to: string, subject: string, body: string): Promise<void> {

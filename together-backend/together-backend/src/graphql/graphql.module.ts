@@ -19,9 +19,11 @@ import { TasksModule } from '../tasks/tasks.module'
 import { CommentsModule } from '../comments/comments.module'
 import { UsersModule } from '../users/users.module'
 import { StatsModule } from '../stats/stats.module'
+import { AuthModule } from '../auth/auth.module'
 
 @Module({
   imports: [
+    AuthModule,        // SEC-01: provides AuthGuard / PermissionsGuard / JwtUtil + user/session repos to resolvers
     TasksModule,
     CommentsModule,
     UsersModule,

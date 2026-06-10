@@ -83,4 +83,37 @@ describe('AuthService (unit)', () => {
     expect(r.stage).toBe('done')
     expect((r as any).result.accessToken).toBe('ACCESS_TOKEN')
   })
+
+  // ── SEC-06: PIN brute-force cap ────────────────────────────────────
+  it('verifyPin rejects and discards the attempt once the cap is reached', async () => {
+    attempts.findOne.mockResolvedValueOnce({
+      id: 'att-1', userId: 'u1', stage: 'pin',
+      attempts: 5,                                  // already at the cap
+      expiresAt: new Date(Date.now() + 60_000),
+    })
+
+    await expect(service.verifyPin('att-1', '1234', { ip: '', userAgent: '' }))
+      .rejects.toThrow(/too many/i)
+
+    expect(attempts.delete).toHaveBeenCalledWith('att-1')
+    expect(users.findOne).not.toHaveBeenCalled()   // bailed before checking the PIN
+  })
+
+  it('verifyPin increments the counter on a wrong PIN (drives toward the cap)', async () => {
+    const row = {
+      id: 'att-1', userId: 'u1', stage: 'pin',
+      attempts: 0, expiresAt: new Date(Date.now() + 60_000),
+    }
+    attempts.findOne.mockResolvedValueOnce(row)
+    users.findOne.mockResolvedValueOnce({
+      id: 'u1', securityPinHash: await bcrypt.hash('1234', 4),
+    })
+
+    await expect(service.verifyPin('att-1', '9999', { ip: '', userAgent: '' }))
+      .rejects.toThrow(/invalid security pin/i)
+
+    expect(row.attempts).toBe(1)
+    expect(attempts.save).toHaveBeenCalledWith(expect.objectContaining({ attempts: 1 }))
+    expect(attempts.delete).not.toHaveBeenCalled()
+  })
 })
