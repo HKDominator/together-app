@@ -14,7 +14,15 @@ import { LoginAttempt } from './entities/login-attempt.entity'
 describe('AuthService (unit)', () => {
   let service: AuthService
 
-  const users    = { findOne: jest.fn(), save: jest.fn(),  create: jest.fn(x => x) }
+  // findUserForAuth() uses createQueryBuilder+addSelect so plain findOne() no
+  // longer loads the select:false hash columns.  Mock the QB chain here.
+  const mockQb = {
+    addSelect:          jest.fn().mockReturnThis(),
+    leftJoinAndSelect:  jest.fn().mockReturnThis(),
+    where:              jest.fn().mockReturnThis(),
+    getOne:             jest.fn(),
+  }
+  const users    = { findOne: jest.fn(), save: jest.fn(), create: jest.fn(x => x), createQueryBuilder: jest.fn(() => mockQb) }
   const roles    = { findOne: jest.fn() }
   const sessions = { save: jest.fn(s => ({ ...s, id: 'sess-1' })), create: jest.fn(x => x), findOne: jest.fn() }
   const attempts = { save: jest.fn(s => ({ ...s, id: 'att-1' })), create: jest.fn(x => x), findOne: jest.fn(), delete: jest.fn() }
@@ -45,13 +53,13 @@ describe('AuthService (unit)', () => {
   })
 
   it('beginLogin rejects unknown email', async () => {
-    users.findOne.mockResolvedValueOnce(null)
+    mockQb.getOne.mockResolvedValueOnce(null)
     await expect(service.beginLogin('x@y.z', 'pw', { ip: '', userAgent: '' }))
       .rejects.toThrow('Invalid credentials')
   })
 
   it('beginLogin rejects bad password', async () => {
-    users.findOne.mockResolvedValueOnce({
+    mockQb.getOne.mockResolvedValueOnce({
       id: 'u1', email: 'x@y.z',
       passwordHash: await bcrypt.hash('rightpass', 4),
       roles: [],
@@ -61,7 +69,7 @@ describe('AuthService (unit)', () => {
   })
 
   it('beginLogin returns OTP stage when 2FA on', async () => {
-    users.findOne.mockResolvedValueOnce({
+    mockQb.getOne.mockResolvedValueOnce({
       id: 'u1', email: 'x@y.z',
       passwordHash: await bcrypt.hash('rightpass', 4),
       twoFactorEnabled: true, threeFactorEnabled: false,
@@ -73,7 +81,7 @@ describe('AuthService (unit)', () => {
   })
 
   it('beginLogin skips OTP when 2FA off', async () => {
-    users.findOne.mockResolvedValueOnce({
+    mockQb.getOne.mockResolvedValueOnce({
       id: 'u1', email: 'x@y.z',
       passwordHash: await bcrypt.hash('rightpass', 4),
       twoFactorEnabled: false, threeFactorEnabled: false,
@@ -127,7 +135,7 @@ describe('AuthService (unit)', () => {
       attempts: 0, expiresAt: new Date(Date.now() + 60_000),
     }
     attempts.findOne.mockResolvedValueOnce(row)
-    users.findOne.mockResolvedValueOnce({
+    mockQb.getOne.mockResolvedValueOnce({
       id: 'u1', securityPinHash: await bcrypt.hash('1234', 4),
     })
 

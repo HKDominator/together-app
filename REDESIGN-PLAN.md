@@ -588,10 +588,18 @@ Order is dependency-driven: tokens unblock the visual sweep, the identity wire u
 - Offline/realtime ✓: **BUG-20** (tempId remap on drain), **BUG-21** (drain validation error surfaced), **BUG-22** (mid-drain refetch scope), **BUG-23** (per-op localStorage keys), **BUG-24** (own-mutation dedup), **BUG-25** (REPLACE_ID idempotent), **BUG-26** (reconnect resync), **BUG-27** (polling fallback), **BUG-28** (ChatPanel disconnected guard), **BUG-33** (realtime comments — backend emits + frontend subscribes), **BUG-35** (debounced server-side search).
 
 **Wave 4 — signature feature build (identity).** Depends on Wave 1 identity wire + SEC-04 (authed WS, done).
-- **FD-06** dual-presence (server-side presence over the authenticated sockets; sidebar dot, task-row co-presence, modal co-presence per DESIGN.md §5).
-- **FD-05** mine/theirs layer on tasks/comments.
-- **FD-03** leaderboard removal + **FD-04** shared-progress view — **CR-01** (fabricated KPIs) and **CR-07** (hardcoded legend names) die with this rebuild.
-- **FD-01 + FD-02** account entry point + index page.
+
+*FD-06 dual-presence — Steps 1–4 ✓ DONE (2026-06-11), 141 FE / 111 BE green:*
+- **Step 1 ✓** (`e9357a9`) — `withCredentials: true` on both sockets, `attachAuthReconnect` on tasks socket (token refresh → reconnect loop).
+- **Step 2 ✓** (`ed576c4`) — Backend `PresenceService` + `TasksGateway` hooks: `presence:state` snapshot on join, online/offline/viewing events, 5 s offline grace (`PRESENCE_OFFLINE_GRACE_MS`).
+- **Step 3 ✓** (`e5a9810`) — `PresenceContext`: rides tasks socket (ADR-0002), seeds from `presence:state` on every connect/reconnect, patches with deltas, re-emits own viewing focus on reconnect. `Sidebar.tsx`: self always online, partner dot = `onlineUserIds.has(id)`, `motion-safe:animate-pulse` (reduced-motion solid color). `app/(app)/layout.tsx`: `<PresenceProvider>` wraps app shell.
+- **Step 4 ✓** (`20db610`) — Viewing presence UI: `TaskDetailContent` extracted for testability; detail page + edit modal emit `setViewingTask` on mount/unmount (BUG-25 `tmp_*` guard); co-presence line on detail; partner initials bubble on task row; `usePresence` returns safe empty default outside provider.
+
+*Remaining FD-06 steps:*
+- **Step 5** — Completion moment: `TasksContext` `lastCompletion` tracking; warm flash on state chip (row + detail) when server-echoed `task:updated` transitions not-done→done with partner online; `prefers-reduced-motion` crossfade on both chips.
+- **Step 6** — **FD-05** mine/theirs framing sweep: "You" vs partner name in task rows/detail/comments; no list segregation.
+- **Step 7** — **FD-03 + FD-04** statistics rebuild (leaderboard removal + "moved together" chart; **CR-01** fabricated KPIs + **CR-07** hardcoded legend names die here).
+- **Step 8** — **FD-01 + FD-02** account entry point + index page.
 
 **Wave 5 — surface feature build.**
 - **FD-16** Couple Pulse (replaces the placeholder; kills **CR-05** jargon copy).
@@ -621,4 +629,4 @@ The "Approved decisions" table above was approved as proposed on 2026-06-10 (zer
 - **Phase 2** (this section) is complete: all decisions locked or approved (veto pass 2026-06-10, zero vetoes). Next action: build starts at **Wave 1** — `globals.css` tokens, the identity wire, and BUG-32 are the first three changes.
 - Wave 1's identity wire is the single highest-leverage code change outside security: five findings collapse into one fix and it unblocks the signature features.
 - **Phase 3 progress (2026-06-11):** Waves 1–3 complete on `refactor/together_app_v2_1`; test suite green (107 FE / 97 BE).
-- **Phase 4 progress:** Waves 1–3 shipped; next is **Wave 4** (dual-presence FD-05/FD-06 — requires explicit user confirmation before starting).
+- **Phase 4 progress (2026-06-11):** Wave 4 Steps 1–4 complete on `refactor/together_app_v2_1`; test suite green (141 FE vitest / 111 BE jest). Steps 5–8 pending (see Wave 4 section above).

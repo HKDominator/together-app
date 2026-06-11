@@ -102,16 +102,28 @@ export class AuthService {
     return this.completeLogin(user, meta)
   }
 
+  // passwordHash and securityPinHash are select:false on the entity so plain
+  // findOne() silently omits them. Use addSelect() via QueryBuilder for the
+  // three auth paths that actually need the hashes.
+  private findUserForAuth(where: { email?: string; id?: string }): Promise<User | null> {
+    const qb = this.users
+      .createQueryBuilder('u')
+      .addSelect('u.passwordHash')
+      .addSelect('u.securityPinHash')
+      .leftJoinAndSelect('u.roles', 'role')
+      .leftJoinAndSelect('role.permissions', 'perm')
+    if (where.email) qb.where('u.email = :email', { email: where.email })
+    else if (where.id) qb.where('u.id = :id', { id: where.id })
+    return qb.getOne()
+  }
+
   // ── Step 1: password ─────────────────────────────────────────────
   async beginLogin(
     email: string,
     password: string,
     meta: { ip: string; userAgent: string },
   ): Promise<LoginStageResult> {
-    const user = await this.users.findOne({
-      where: { email: email.toLowerCase() },
-      relations: { roles: { permissions: true } },
-    })
+    const user = await this.findUserForAuth({ email: email.toLowerCase() })
     // Constant-time-ish failure message so we don't leak which emails exist
     if (!user) throw new UnauthorizedException('Invalid credentials')
 
@@ -177,10 +189,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid code')
     }
 
-    const user = await this.users.findOne({
-      where: { id: attempt.userId },
-      relations: { roles: { permissions: true } },
-    })
+    const user = await this.findUserForAuth({ id: attempt.userId })
     if (!user) throw new UnauthorizedException('User vanished')
 
     // If 3FA is OFF on this user, finish here.
@@ -214,10 +223,7 @@ export class AuthService {
       throw new UnauthorizedException('Too many wrong PINs — start again')
     }
 
-    const user = await this.users.findOne({
-      where: { id: attempt.userId },
-      relations: { roles: { permissions: true } },
-    })
+    const user = await this.findUserForAuth({ id: attempt.userId })
     if (!user) throw new UnauthorizedException('User vanished')
 
     const ok = await bcrypt.compare(pin, user.securityPinHash)
