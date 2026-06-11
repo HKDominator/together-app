@@ -181,7 +181,7 @@ export default function CommentsThread({ taskId }: Props) {
               )}
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-2 mb-1">
-                  <span className="text-sm font-semibold text-gray-700">{u?.name ?? 'Unknown'}</span>
+                  <span className="text-sm font-semibold text-gray-700">{isMe ? 'You' : (u?.name ?? 'Unknown')}</span>
                   <span className="text-xs text-gray-400">{fmtDate(c.createdAt)}</span>
                   {isEdited && <span className="text-xs text-gray-400 italic">· edited</span>}
                 </div>

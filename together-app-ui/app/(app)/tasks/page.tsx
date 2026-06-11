@@ -315,7 +315,9 @@ export default function TasksPage() {
                         {u.initials}
                       </div>
                     )}
-                    <span className="text-xs text-gray-600">{userName(t.assigneeId)}</span>
+                    <span className="text-xs text-gray-600">
+                      {t.assigneeId === currentUser?.id ? 'You' : userName(t.assigneeId)}
+                    </span>
                   </div>
                   <PriorityBadge priority={t.priority} />
                   <span className={`text-xs ${isOverdue ? 'text-red-600 font-semibold' : 'text-gray-600'}`}>

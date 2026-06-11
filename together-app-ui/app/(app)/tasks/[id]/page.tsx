@@ -178,9 +178,15 @@ export function TaskDetailContent({ id }: { id: string }) {
           </p>
 
           <div className="space-y-3">
-            <ActivityItem user={createdBy} action="created this task" time={task.createdAt} />
+            <ActivityItem
+              user={createdBy} action="created this task" time={task.createdAt}
+              displayName={createdBy?.id === currentUser?.id ? 'You' : createdBy?.name}
+            />
             {new Date(task.createdAt).getTime() !== new Date(task.updatedAt).getTime() && (
-              <ActivityItem user={assignee} action="last updated this task" time={task.updatedAt} />
+              <ActivityItem
+                user={assignee} action="last updated this task" time={task.updatedAt}
+                displayName={assignee?.id === currentUser?.id ? 'You' : assignee?.name}
+              />
             )}
           </div>
 
@@ -199,7 +205,9 @@ export function TaskDetailContent({ id }: { id: string }) {
                     {assignee.initials}
                   </div>
                 )}
-                <span className="text-sm text-gray-700 font-medium">{assignee?.name ?? '—'}</span>
+                <span className="text-sm text-gray-700 font-medium">
+                  {task.assigneeId === currentUser?.id ? 'You' : (assignee?.name ?? '—')}
+                </span>
               </div>
             </DetailRow>
             <DetailRow label="Due Date">
@@ -301,8 +309,8 @@ function DetailRow({ label, children }: DetailRowProps) {
   )
 }
 
-interface ActivityItemProps { user: User | undefined; action: string; time: Date | string | undefined }
-function ActivityItem({ user, action, time }: ActivityItemProps) {
+interface ActivityItemProps { user: User | undefined; action: string; time: Date | string | undefined; displayName?: string }
+function ActivityItem({ user, action, time, displayName }: ActivityItemProps) {
   if (!user) return null
   return (
     <div className="flex items-start gap-3">
@@ -312,7 +320,7 @@ function ActivityItem({ user, action, time }: ActivityItemProps) {
       </div>
       <div>
         <p className="text-sm text-gray-500">
-          <span className="font-semibold text-gray-700">{user.name}</span> {action}
+          <span className="font-semibold text-gray-700">{displayName ?? user.name}</span> {action}
         </p>
         <p className="text-xs text-gray-500">
           {time ? new Date(time).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
