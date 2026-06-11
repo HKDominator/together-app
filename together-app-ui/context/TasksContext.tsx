@@ -156,6 +156,10 @@ export function TasksProvider({ children }: { children: ReactNode }) {
   const loadingMoreRef = useRef(false)
   const prefetchedPageRef = useRef<Map<number, Task[]>>(new Map())
 
+  // BUG-24: track ids created/deleted by this tab so WS echo doesn't double-adjust totalTasks
+  const ownCreatedIds = useRef(new Set<string>())
+  const ownDeletedIds = useRef(new Set<string>())
+
   const refreshPending = useCallback(() => setPendingCount(offlineQueue.size()), [])
 
   const hasMore = currentPage < totalPages
@@ -242,15 +246,22 @@ export function TasksProvider({ children }: { children: ReactNode }) {
 
     const onCreated = (t: Task) => {
       dispatch({ type: 'UPSERT', payload: t })
-      setTotalTasks(n => n + 1)
-      // Invalidate prefetch cache — inserting a new row shifts pages.
       prefetchedPageRef.current.clear()
+      if (ownCreatedIds.current.has(t.id)) {
+        ownCreatedIds.current.delete(t.id)
+        return  // already counted optimistically
+      }
+      setTotalTasks(n => n + 1)
     }
     const onUpdated = (t: Task) => dispatch({ type: 'UPSERT', payload: t })
     const onDeleted = ({ id }: { id: string }) => {
       dispatch({ type: 'REMOVE', payload: { id } })
-      setTotalTasks(n => Math.max(0, n - 1))
       prefetchedPageRef.current.clear()
+      if (ownDeletedIds.current.has(id)) {
+        ownDeletedIds.current.delete(id)
+        return  // already decremented optimistically
+      }
+      setTotalTasks(n => Math.max(0, n - 1))
     }
     const onGenStart = () => setGeneratorRunning(true)
     const onGenStop  = () => setGeneratorRunning(false)
@@ -291,11 +302,13 @@ export function TasksProvider({ children }: { children: ReactNode }) {
           if (op.kind === 'create') {
             const real = await api.createTask(op.dto)
             dispatch({ type: 'REPLACE_ID', payload: { oldId: op.tempId, task: real } })
+            ownCreatedIds.current.add(real.id)
             offlineQueue.remapTempId(op.tempId, real.id)
           } else if (op.kind === 'update') {
             const real = await api.updateTask(op.taskId, op.dto)
             dispatch({ type: 'UPSERT', payload: real })
           } else if (op.kind === 'delete') {
+            ownDeletedIds.current.add(op.taskId)
             await api.deleteTask(op.taskId)
           } else if (op.kind === 'state') {
             const real = await api.setTaskState(op.taskId, op.newState)
@@ -311,6 +324,9 @@ export function TasksProvider({ children }: { children: ReactNode }) {
             if (!cancelled) setDrainError(
               `"${op.dto.title}" could not be saved: ${(err as Error).message}`
             )
+          } else if (op.kind === 'delete') {
+            ownDeletedIds.current.delete(op.taskId)
+          }
           // Non-create failures: drop the op and continue.
           // A full SET_TASKS reset would discard any extra pages the user
           // had loaded — WebSocket / next natural page load will correct state.
@@ -332,6 +348,7 @@ export function TasksProvider({ children }: { children: ReactNode }) {
     try {
       const real = await api.createTask(dto)
       dispatch({ type: 'REPLACE_ID', payload: { oldId: tId, task: real } })
+      ownCreatedIds.current.add(real.id)
     } catch (err) {
       if (isNetworkError(err)) {
         offlineQueue.enqueueCreate(tId, dto); refreshPending()
@@ -366,9 +383,11 @@ export function TasksProvider({ children }: { children: ReactNode }) {
     setTotalTasks(n => Math.max(0, n - 1))
 
     if (!isOnlineRef.current) { offlineQueue.enqueueDelete(id); refreshPending(); return }
+    ownDeletedIds.current.add(id)
     try {
       await api.deleteTask(id)
     } catch (err) {
+      ownDeletedIds.current.delete(id)
       if (isNetworkError(err)) { offlineQueue.enqueueDelete(id); refreshPending() }
       else { dispatch({ type: 'UPSERT', payload: before }); setTotalTasks(n => n + 1); throw err }
     }
