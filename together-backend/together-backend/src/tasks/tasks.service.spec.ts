@@ -55,8 +55,8 @@ describe('TasksService (unit, mocked repos)', () => {
 
     const usersRepoMock = {
       findAll:     jest.fn().mockResolvedValue([
-        { id: 'u-1', name: 'Ana', role: 'owner',   email: 'a@x', passwordHash: '', avatarColor: '#000', initials: 'A', createdAt: new Date() },
-        { id: 'u-2', name: 'Dan', role: 'partner', email: 'd@x', passwordHash: '', avatarColor: '#000', initials: 'D', createdAt: new Date() },
+        { id: 'u-1', name: 'Ana', coupleRole: 'owner',   email: 'a@x', passwordHash: '', avatarColor: '#000', initials: 'A', createdAt: new Date() },
+        { id: 'u-2', name: 'Dan', coupleRole: 'partner', email: 'd@x', passwordHash: '', avatarColor: '#000', initials: 'D', createdAt: new Date() },
       ]),
       findById:    jest.fn(),
       findByEmail: jest.fn(),

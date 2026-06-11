@@ -20,7 +20,7 @@ import { JwtUtil } from './jwt-util.service'
 import { MailerService } from './mailer.service'
 
 export interface AuthUserPayload {
-  id: string; email: string; name: string; role: string
+  id: string; email: string; name: string; coupleRole: string
   avatarColor: string; initials: string
   twoFactorEnabled: boolean; threeFactorEnabled: boolean
 }
@@ -89,7 +89,7 @@ export class AuthService {
       twoFactorEnabled:    true,            // default ON for everyone
       threeFactorEnabled:  pinHash.length > 0,
       name:                input.name,
-      role:                'partner',
+      coupleRole:          'partner',
       avatarColor:         '#' + ((Math.random() * 0xffffff) | 0).toString(16).padStart(6, '0'),
       initials:            initials || 'U?',
       roles:               [userRole],
@@ -311,7 +311,7 @@ export class AuthService {
   // ── Helpers ──────────────────────────────────────────────────────
   toUserPayload(user: User): AuthUserPayload {
     return {
-      id: user.id, email: user.email, name: user.name, role: user.role,
+      id: user.id, email: user.email, name: user.name, coupleRole: user.coupleRole,
       avatarColor: user.avatarColor, initials: user.initials,
       twoFactorEnabled:  user.twoFactorEnabled,
       threeFactorEnabled:user.threeFactorEnabled,

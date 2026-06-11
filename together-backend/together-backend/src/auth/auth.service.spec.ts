@@ -99,6 +99,22 @@ describe('AuthService (unit)', () => {
     expect(users.findOne).not.toHaveBeenCalled()   // bailed before checking the PIN
   })
 
+  // BUG-07: register() must set coupleRole (couple-relationship semantics)
+  // separately from the RBAC `roles` relation — both must be populated.
+  it('register() sets coupleRole for couple semantics distinct from RBAC roles', async () => {
+    roles.findOne.mockResolvedValueOnce({ id: 'r1', name: 'user', permissions: [] })
+    users.save.mockImplementationOnce(async (u: any) => ({ ...u, id: 'new-u', sessions: [] }))
+    sessions.save.mockImplementationOnce(async (s: any) => ({ ...s, id: 'sess-1' }))
+
+    await service.register(
+      { email: 'new@test.com', password: 'password1234', name: 'New User' } as any,
+    )
+
+    const saved = users.save.mock.calls[0][0] as any
+    expect(saved.coupleRole).toBe('partner')      // couple-role (BUG-07: renamed from "role")
+    expect(Array.isArray(saved.roles)).toBe(true) // RBAC roles also populated
+  })
+
   it('verifyPin increments the counter on a wrong PIN (drives toward the cap)', async () => {
     const row = {
       id: 'att-1', userId: 'u1', stage: 'pin',

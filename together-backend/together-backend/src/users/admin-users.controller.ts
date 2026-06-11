@@ -27,7 +27,7 @@ export class AdminUsersController {
     const users = await this.users.find({ relations: { roles: true } })
     return users.map(u => ({
       id: u.id, email: u.email, name: u.name,
-      role: u.role,
+      coupleRole: u.coupleRole,
       authRoles: (u.roles ?? []).map(r => r.name),
       createdAt: u.createdAt,
     }))

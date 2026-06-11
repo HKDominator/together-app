@@ -30,7 +30,9 @@ export class User {
 
   @Column({ type: 'varchar', length: 100 }) name!: string
 
-  @Column({ type: 'varchar', length: 20 })  role!: UserRole
+  /** Which person in the couple this is ('owner'|'partner'). Distinct from
+   *  the RBAC `roles` M:M relation — do NOT use this field for authorization. */
+  @Column({ type: 'varchar', length: 20, name: 'role' }) coupleRole!: UserRole
   @Column({ type: 'varchar', length: 7 })   avatarColor!: string
   @Column({ type: 'varchar', length: 4 })   initials!: string
 

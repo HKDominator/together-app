@@ -103,7 +103,7 @@ async function run() {
       email:        `seed${i}_${faker.string.alphanumeric(6).toLowerCase()}@bots.local`,
       passwordHash,
       name:         `${first} ${last}`,
-      role:         'partner',
+      coupleRole:   'partner',
       avatarColor:  faker.color.rgb(),
       initials:     (first[0] + last[0]).toUpperCase(),
       twoFactorEnabled:   false,
