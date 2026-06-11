@@ -46,6 +46,11 @@ export class TasksRepository {
     return this.repo.findOne({ where: { id } })
   }
 
+  findByIds(ids: string[]): Promise<Task[]> {
+    if (ids.length === 0) return Promise.resolve([])
+    return this.repo.find({ where: ids.map(id => ({ id })) })
+  }
+
   insert(draft: Partial<Task>): Promise<Task> {
     return this.repo.save(this.repo.create(draft))
   }
