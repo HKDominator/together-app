@@ -22,7 +22,7 @@ interface Props { params: Promise<{ id: string }> }
 // Exported so tests can render it directly without the async-params wrapper.
 export function TaskDetailContent({ id }: { id: string }) {
   const router = useRouter()
-  const { tasks, users, currentUser, updateTask, deleteTask, setTaskState } = useTasks()
+  const { tasks, users, currentUser, updateTask, deleteTask, setTaskState, lastCompletion } = useTasks()
   const { setViewingTask, viewingByUser } = usePresence()
 
   // FD-06: tell the server this user is looking at this task. Clears on leave.
@@ -90,7 +90,12 @@ export function TaskDetailContent({ id }: { id: string }) {
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-9">
           <div className="flex items-center gap-3 mb-5 flex-wrap">
             <PriorityBadge priority={task.priority} />
-            <StateChip state={task.state} />
+            <span
+              className={`rounded-full motion-safe:transition-all motion-safe:duration-300 ${lastCompletion?.taskId === task.id ? 'ring-2 ring-amber-400' : ''}`}
+              data-testid="detail-chip"
+            >
+              <StateChip state={task.state} />
+            </span>
             {isOverdue && <span className="text-xs text-red-600 font-semibold">⚠ Overdue</span>}
           </div>
 

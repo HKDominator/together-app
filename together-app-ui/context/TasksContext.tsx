@@ -33,6 +33,7 @@ import { getSocket } from '@/lib/ws'
 import { offlineQueue } from '@/lib/offlineQueue'
 import { useOnlineStatus } from '@/hooks/useOnlineStatus'
 import { useAuth } from '@/context/AuthContext'
+import { usePresence } from '@/context/PresenceContext'
 
 const INITIAL_PAGE_SIZE = 20
 const PAGE_SIZE         = 20
@@ -117,6 +118,8 @@ interface TasksContextValue {
   startGenerator: () => Promise<void>
   stopGenerator:  () => Promise<void>
 
+  lastCompletion: { taskId: string; completedAt: number } | null
+
   drainError:     string | null
   clearDrainError:() => void
 }
@@ -144,6 +147,7 @@ export function makeOptimisticTask(dto: ValidatedTaskData, id: string, createdBy
 // ── Provider ─────────────────────────────────────────────────────────
 export function TasksProvider({ children }: { children: ReactNode }) {
   const { user: authUser } = useAuth()
+  const { onlineUserIds } = usePresence()
   const [state, dispatch]             = useReducer(tasksReducer, { tasks: [] })
   const [isLoading, setIsLoading]     = useState(true)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
@@ -154,10 +158,24 @@ export function TasksProvider({ children }: { children: ReactNode }) {
   const [generatorRunning, setGeneratorRunning] = useState(false)
   const [users, setUsers] = useState<User[]>([])
   const [drainError, setDrainError] = useState<string | null>(null)
+  const [lastCompletion, setLastCompletion] = useState<{ taskId: string; completedAt: number } | null>(null)
   const { isOnline } = useOnlineStatus()
 
   const isOnlineRef = useRef(isOnline)
   useEffect(() => { isOnlineRef.current = isOnline }, [isOnline])
+
+  // Refs so the WS handler (closed over once, empty-deps useEffect) always
+  // reads the latest tasks, users, authUser, and presence without re-subscribing.
+  const tasksRef          = useRef<Task[]>([])
+  const usersRef          = useRef<User[]>([])
+  const authUserRef       = useRef(authUser)
+  const onlineUserIdsRef  = useRef(onlineUserIds)
+  const completionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => { tasksRef.current = state.tasks },   [state.tasks])
+  useEffect(() => { usersRef.current = users },          [users])
+  useEffect(() => { authUserRef.current = authUser },    [authUser])
+  useEffect(() => { onlineUserIdsRef.current = onlineUserIds }, [onlineUserIds])
 
   // Refs to guard concurrent pagination calls — the scroll handler can
   // easily fire two "loadMore" attempts before the first resolves.
@@ -279,7 +297,19 @@ export function TasksProvider({ children }: { children: ReactNode }) {
       }
       setTotalTasks(n => n + 1)
     }
-    const onUpdated = (t: Task) => dispatch({ type: 'UPSERT', payload: t })
+    const onUpdated = (t: Task) => {
+      // Detect not-done → done transition with partner online — trigger completion flash.
+      const prev = tasksRef.current.find(task => task.id === t.id)
+      if (prev && prev.state !== 'done' && t.state === 'done') {
+        const partner = usersRef.current.find(u => u.id !== authUserRef.current?.id)
+        if (partner && onlineUserIdsRef.current.has(partner.id)) {
+          setLastCompletion({ taskId: t.id, completedAt: Date.now() })
+          if (completionTimerRef.current) clearTimeout(completionTimerRef.current)
+          completionTimerRef.current = setTimeout(() => setLastCompletion(null), 500)
+        }
+      }
+      dispatch({ type: 'UPSERT', payload: t })
+    }
     const onDeleted = ({ id }: { id: string }) => {
       dispatch({ type: 'REMOVE', payload: { id } })
       prefetchedPageRef.current.clear()
@@ -468,6 +498,7 @@ export function TasksProvider({ children }: { children: ReactNode }) {
         prefetchNext,
         startGenerator,
         stopGenerator,
+        lastCompletion,
         drainError,
         clearDrainError: () => setDrainError(null),
       }}

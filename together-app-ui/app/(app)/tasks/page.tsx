@@ -31,6 +31,7 @@ export default function TasksPage() {
     createTask, updateTask, deleteTask,
     pendingCount, generatorRunning, startGenerator, stopGenerator,
     hasMore, totalTasks, isLoadingMore, loadMore, prefetchNext,
+    lastCompletion,
     drainError, clearDrainError,
   } = useTasks()
   const { viewingByUser } = usePresence()
@@ -321,7 +322,12 @@ export default function TasksPage() {
                     {isOverdue && '⚠ '}
                     {t.dueDate ? new Date(t.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '—'}
                   </span>
-                  <StateChip state={t.state} />
+                  <span
+                    className={`rounded-full motion-safe:transition-all motion-safe:duration-300 ${lastCompletion?.taskId === t.id ? 'ring-2 ring-amber-400' : ''}`}
+                    data-testid={`row-chip-${t.id}`}
+                  >
+                    <StateChip state={t.state} />
+                  </span>
                   <div className="flex gap-1" onClick={e => e.stopPropagation()}>
                     <button
                       onClick={e => openEdit(t, e)}
