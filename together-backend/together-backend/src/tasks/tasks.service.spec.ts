@@ -156,6 +156,26 @@ describe('TasksService (unit, mocked repos)', () => {
       await expect(service.update('t-1', { assigneeId: 'ghost' }))
         .rejects.toBeInstanceOf(BadRequestException)
     })
+
+    // BUG-04: update() was missing the past-due-date guard that create() has
+    it('rejects a past due date (BUG-04)', async () => {
+      repo.findById.mockResolvedValue(makeTask())
+      await expect(service.update('t-1', { dueDate: '2000-01-01' }))
+        .rejects.toBeInstanceOf(BadRequestException)
+    })
+
+    // BUG-05: today's local-date string must never be rejected as "in the past"
+    it('accepts today as a valid due date (BUG-05: no UTC/local mismatch)', async () => {
+      const today = new Date()
+      const todayStr = [
+        today.getFullYear(),
+        String(today.getMonth() + 1).padStart(2, '0'),
+        String(today.getDate()).padStart(2, '0'),
+      ].join('-')
+      repo.findById.mockResolvedValue(makeTask())
+      repo.update.mockImplementation(async (_id, patch) => makeTask(patch as Partial<Task>))
+      await expect(service.update('t-1', { dueDate: todayStr })).resolves.toBeDefined()
+    })
   })
 
   // ── setState (state machine) ──────────────────────────────────

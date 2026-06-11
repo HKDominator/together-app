@@ -59,6 +59,7 @@ export class TasksService {
   async update(id: string, dto: UpdateTaskDto): Promise<Task> {
     await this.findOne(id)
     if (dto.assigneeId) await this.assertAssigneeExists(dto.assigneeId)
+    if (dto.dueDate !== undefined) this.assertDueDateNotInPast(dto.dueDate)
 
     const patch: Partial<Task> = {}
     if (dto.title !== undefined)       patch.title       = dto.title.trim()
@@ -105,8 +106,13 @@ export class TasksService {
 
   private assertDueDateNotInPast(dueDate?: string | null): void {
     if (!dueDate) return
-    const today = new Date(); today.setHours(0, 0, 0, 0)
-    if (new Date(dueDate) < today) {
+    const now = new Date()
+    const todayStr = [
+      now.getFullYear(),
+      String(now.getMonth() + 1).padStart(2, '0'),
+      String(now.getDate()).padStart(2, '0'),
+    ].join('-')
+    if (dueDate < todayStr) {
       throw new BadRequestException('Due date must be today or in the future')
     }
   }
