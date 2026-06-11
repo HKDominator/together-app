@@ -26,7 +26,7 @@ export function getSocket(): Socket {
   if (!socket) {
     socket = io(WS_URL, {
       autoConnect:  true,
-      transports:   ['websocket'],
+      transports:   ['websocket', 'polling'],
       reconnection: true,
     })
   }
