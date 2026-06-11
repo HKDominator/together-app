@@ -1,7 +1,7 @@
 // Destination: together-backend/together-backend/src/tasks/tasks.repository.ts
 // Replaces the in-memory Map. Same method signatures (now async) so
 // TasksService barely changes.
-import { Injectable } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { ILike, Repository } from 'typeorm'
 import { Task, Priority, TaskState } from './entities/task.entity'
@@ -15,6 +15,8 @@ export interface TasksFilter {
 
 @Injectable()
 export class TasksRepository {
+  private readonly log = new Logger(TasksRepository.name)
+
   constructor(
     @InjectRepository(Task) private readonly repo: Repository<Task>,
   ) {}
@@ -112,17 +114,36 @@ countSince(since: Date): Promise<number> {
 async getUserTaskStats(userId: string): Promise<{
   total: number; done: number; inProgress: number; todo: number; cancelled: number; overdue: number
 }> {
-  const rows = await this.repo.query(
-    'SELECT * FROM get_user_task_stats($1)', [userId],
-  )
-  const r = rows[0] ?? {}
-  return {
-    total:      Number(r.total_tasks       ?? 0),
-    done:       Number(r.done_tasks        ?? 0),
-    inProgress: Number(r.in_progress_tasks ?? 0),
-    todo:       Number(r.todo_tasks        ?? 0),
-    cancelled:  Number(r.cancelled_tasks   ?? 0),
-    overdue:    Number(r.overdue_tasks     ?? 0),
+  try {
+    const rows = await this.repo.query(
+      'SELECT * FROM get_user_task_stats($1)', [userId],
+    )
+    const r = rows[0] ?? {}
+    return {
+      total:      Number(r.total_tasks       ?? 0),
+      done:       Number(r.done_tasks        ?? 0),
+      inProgress: Number(r.in_progress_tasks ?? 0),
+      todo:       Number(r.todo_tasks        ?? 0),
+      cancelled:  Number(r.cancelled_tasks   ?? 0),
+      overdue:    Number(r.overdue_tasks     ?? 0),
+    }
+  } catch (err: any) {
+    if (err?.code !== '42883') throw err
+    // BUG-12: stored proc absent (init-sql/ missing) — fall back to inline queries
+    this.log.warn('get_user_task_stats SP missing — using fallback inline queries')
+    const base = () => this.repo.createQueryBuilder('t').where('t.assigneeId = :uid', { uid: userId })
+    const today = new Date().toISOString().slice(0, 10)
+    const [total, done, inProgress, todo, cancelled, overdue] = await Promise.all([
+      base().getCount(),
+      base().andWhere('t.state = :s', { s: TaskState.DONE }).getCount(),
+      base().andWhere('t.state = :s', { s: TaskState.IN_PROGRESS }).getCount(),
+      base().andWhere('t.state = :s', { s: TaskState.TODO }).getCount(),
+      base().andWhere('t.state = :s', { s: TaskState.CANCELLED }).getCount(),
+      base().andWhere('t.dueDate IS NOT NULL')
+            .andWhere('t.dueDate < :today', { today })
+            .andWhere(`t.state NOT IN ('done','cancelled')`).getCount(),
+    ])
+    return { total, done, inProgress, todo, cancelled, overdue }
   }
 }
 

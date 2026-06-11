@@ -85,6 +85,24 @@ describe('TasksRepository (unit)', () => {
     expect(await wrapper.remove('id')).toBe(false)
   })
 
+  // BUG-12: if init-sql/ is absent the stored proc doesn't exist;
+  // getUserTaskStats() must fall back to inline queries rather than throwing.
+  it('getUserTaskStats() falls back gracefully when the stored-proc is absent (BUG-12)', async () => {
+    const spMissing = Object.assign(
+      new Error('function get_user_task_stats(unknown) does not exist'),
+      { code: '42883' },
+    )
+    mock.query!.mockRejectedValueOnce(spMissing)  // SP call fails
+    // Fallback uses createQueryBuilder counts — wire them up
+    mock.createQueryBuilder!.mockReturnValue({
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getCount: jest.fn().mockResolvedValue(0),
+    })
+    const r = await wrapper.getUserTaskStats('u-fallback')
+    expect(r).toEqual(expect.objectContaining({ total: 0, done: 0 }))
+  })
+
   it('getUserTaskStats() invokes the SP via raw SQL', async () => {
     mock.query!.mockResolvedValue([{
       total_tasks: '5', done_tasks: '2', in_progress_tasks: '1',
