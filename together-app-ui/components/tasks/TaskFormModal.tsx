@@ -9,7 +9,7 @@ interface Props {
   isOpen:   boolean
   task?:    Task | null
   onClose:  () => void
-  onSubmit: (data: ValidatedTaskData) => void
+  onSubmit: (data: ValidatedTaskData) => Promise<void>
 }
 
 type FormElement = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
@@ -28,8 +28,9 @@ function taskToForm(task: Task | null | undefined): TaskFormData {
 }
 
 export default function TaskFormModal({ isOpen, task, onClose, onSubmit }: Props) {
-  const [form,   setForm]   = useState<TaskFormData>(() => taskToForm(task))
-  const [errors, setErrors] = useState<ValidationErrors>({})
+  const [form,        setForm]        = useState<TaskFormData>(() => taskToForm(task))
+  const [errors,      setErrors]      = useState<ValidationErrors>({})
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   const mode = task ? 'edit' : 'create'
   const users = useTasks().users
@@ -64,12 +65,17 @@ export default function TaskFormModal({ isOpen, task, onClose, onSubmit }: Props
     }
   }
 
-  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const errs = validateTask(form, mode)
     if (!isValid(errs)) { setErrors(errs); return }
-    onSubmit({ ...form, title: form.title.trim(), priority: form.priority as Task['priority'] })
-    onClose()
+    setSubmitError(null)
+    try {
+      await onSubmit({ ...form, title: form.title.trim(), priority: form.priority as Task['priority'] })
+      onClose()
+    } catch (err) {
+      setSubmitError((err as Error).message || 'Something went wrong')
+    }
   }
 
   return (
@@ -178,6 +184,13 @@ export default function TaskFormModal({ isOpen, task, onClose, onSubmit }: Props
             onBlur={handleBlur}
             error={errors.dueDate}
           />
+
+          {submitError && (
+            <div role="alert" className="p-3 rounded-lg bg-red-50 text-red-700 text-sm">
+              {submitError}
+              <button type="button" onClick={() => setSubmitError(null)} className="ml-3 underline text-xs">Dismiss</button>
+            </div>
+          )}
 
           <div className="flex gap-3 justify-end pt-2">
             <button

@@ -89,10 +89,8 @@ export default function TasksPage() {
   }
 
   async function handleSubmit(formData: ValidatedTaskData) {
-    try {
-      if (editingTask) await updateTask(editingTask.id, formData)
-      else              await createTask(formData)
-    } catch (err) { console.error(err) }
+    if (editingTask) await updateTask(editingTask.id, formData)
+    else             await createTask(formData)
   }
 
   async function handleDelete() {
