@@ -1,6 +1,6 @@
 // Destination: together-backend/together-backend/src/tasks/tasks.service.ts
 import {
-  BadRequestException, Injectable, NotFoundException, Optional,
+  BadRequestException, ConflictException, Injectable, NotFoundException, Optional,
 } from '@nestjs/common'
 import { TasksRepository } from './tasks.repository'
 import { Task, TaskState, VALID_TRANSITIONS } from './entities/task.entity'
@@ -92,8 +92,12 @@ export class TasksService {
         `Allowed from ${task.state}: [${allowed.join(', ') || 'none'}]`,
       )
     }
-    const updated = await this.repo.update(id, { state: newState })
-    if (!updated) throw new NotFoundException(`Task ${id} not found`)
+    const updated = await this.repo.setStateIfCurrent(id, task.state, newState)
+    if (updated === null) {
+      throw new ConflictException(
+        `Task ${id} state changed concurrently — please reload and try again`,
+      )
+    }
     this.gateway?.emitTaskUpdated(updated)
     return updated
   }

@@ -1,7 +1,7 @@
 // Destination: together-backend/together-backend/src/tasks/tasks.service.spec.ts
 // REPLACE the existing file.
 import { Test, TestingModule } from '@nestjs/testing'
-import { BadRequestException, NotFoundException } from '@nestjs/common'
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common'
 import { TasksService } from './tasks.service'
 import { TasksRepository } from './tasks.repository'
 import { UsersService } from '../users/users.service'
@@ -37,14 +37,16 @@ describe('TasksService (unit, mocked repos)', () => {
 
   beforeEach(async () => {
     const repoMock = {
-      findAll:        jest.fn(),
-      findFiltered:   jest.fn(),
-      findById:       jest.fn(),
-      insert:         jest.fn(),
-      update:         jest.fn(),
-      remove:         jest.fn(),
-      clear:          jest.fn(),
-      count:          jest.fn(),
+      findAll:           jest.fn(),
+      findFiltered:      jest.fn(),
+      findById:          jest.fn(),
+      findByIds:         jest.fn(),
+      insert:            jest.fn(),
+      update:            jest.fn(),
+      setStateIfCurrent: jest.fn(),
+      remove:            jest.fn(),
+      clear:             jest.fn(),
+      count:             jest.fn(),
     } as unknown as jest.Mocked<TasksRepository>
 
     const usersMock = {
@@ -182,7 +184,7 @@ describe('TasksService (unit, mocked repos)', () => {
   describe('setState()', () => {
     it('allows todo → in_progress', async () => {
       repo.findById.mockResolvedValue(makeTask({ state: TaskState.TODO }))
-      repo.update.mockResolvedValue(makeTask({ state: TaskState.IN_PROGRESS }))
+      repo.setStateIfCurrent.mockResolvedValue(makeTask({ state: TaskState.IN_PROGRESS }))
       const r = await service.setState('t-1', TaskState.IN_PROGRESS)
       expect(r.state).toBe(TaskState.IN_PROGRESS)
     })
@@ -197,6 +199,16 @@ describe('TasksService (unit, mocked repos)', () => {
       repo.findById.mockResolvedValue(makeTask({ state: TaskState.DONE }))
       await expect(service.setState('t-1', TaskState.TODO))
         .rejects.toBeInstanceOf(BadRequestException)
+    })
+
+    // BUG-08: concurrent transition races must produce a ConflictException,
+    // not silently overwrite — setStateIfCurrent returns null when the DB row
+    // no longer has the expected state (another request already changed it).
+    it('throws ConflictException when the state changed concurrently (BUG-08)', async () => {
+      repo.findById.mockResolvedValue(makeTask({ state: TaskState.TODO }))
+      repo.setStateIfCurrent.mockResolvedValue(null)   // row changed since we read it
+      await expect(service.setState('t-1', TaskState.IN_PROGRESS))
+        .rejects.toBeInstanceOf(ConflictException)
     })
   })
 

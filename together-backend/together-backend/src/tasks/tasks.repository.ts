@@ -60,6 +60,24 @@ export class TasksRepository {
     return this.findById(id)
   }
 
+  /** Atomic conditional update: only sets state if the row still has
+   *  expectedState. Returns the updated task, or null if the state had
+   *  already changed (concurrent transition — caller should 409). */
+  async setStateIfCurrent(
+    id: string,
+    expectedState: TaskState,
+    newState: TaskState,
+  ): Promise<Task | null> {
+    const result = await this.repo
+      .createQueryBuilder()
+      .update(Task)
+      .set({ state: newState })
+      .where('id = :id AND state = :expected', { id, expected: expectedState })
+      .execute()
+    if ((result.affected ?? 0) === 0) return null
+    return this.findById(id)
+  }
+
   async remove(id: string): Promise<boolean> {
     const r = await this.repo.delete(id)
     return (r.affected ?? 0) > 0
