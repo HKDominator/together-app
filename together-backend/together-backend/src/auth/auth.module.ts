@@ -21,6 +21,7 @@ import { SessionsController } from './sessions.controller'
 import { SessionsService }    from './sessions.service'
 import { RecoveryController } from './recovery.controller'
 import { RecoveryService }    from './recovery.service'
+import { AuthCleanupService } from './auth-cleanup.service'
 
 @Module({
   imports: [
@@ -33,7 +34,7 @@ import { RecoveryService }    from './recovery.service'
   providers: [
     AuthService, AuthGuard, PermissionsGuard,
     JwtUtil, WsAuthService, MailerService,
-    SessionsService, RecoveryService,
+    SessionsService, RecoveryService, AuthCleanupService,
   ],
   exports: [
     AuthService, AuthGuard, PermissionsGuard,
