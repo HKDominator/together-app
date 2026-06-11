@@ -9,6 +9,7 @@ import {
 } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { auth, AuthUser, LoginStage } from '@/lib/auth'
+import { isNetworkError } from '@/lib/api'
 
 interface AuthSnapshot {
   user:        AuthUser | null
@@ -84,7 +85,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (heartbeat.current) window.clearInterval(heartbeat.current)
     if (!snap.user) return
     heartbeat.current = window.setInterval(async () => {
-      try { await auth.me() } catch {
+      try { await auth.me() } catch (e) {
+        if (isNetworkError(e)) return  // transient — don't log out
         setSnap(EMPTY)
         if (!PUBLIC.includes(pathname)) router.replace('/login')
       }

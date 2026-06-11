@@ -51,6 +51,18 @@ export interface TasksStats {
   topCommentedTasks: TopCommentedTask[]
 }
 
+// Single-flight refresh: if one is already in-flight, all 401s share it.
+let _refreshFlight: Promise<boolean> | null = null
+function refreshOnce(): Promise<boolean> {
+  if (!_refreshFlight) {
+    _refreshFlight = fetch(`${API_URL}/auth/refresh`, { method: 'POST', credentials: 'include' })
+      .then(r => r.ok)
+      .catch(() => false)
+      .finally(() => { _refreshFlight = null })
+  }
+  return _refreshFlight
+}
+
 async function req<T>(
   method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
   path:   string,
@@ -68,10 +80,8 @@ async function req<T>(
   } catch { throw new NetworkError() }
 
   if (res.status === 401 && retry) {
-    try {
-      const r = await fetch(`${API_URL}/auth/refresh`, { method: 'POST', credentials: 'include' })
-      if (r.ok) return req<T>(method, path, body, false)
-    } catch { /* fall through */ }
+    const refreshed = await refreshOnce()
+    if (refreshed) return req<T>(method, path, body, false)
     // Refresh failed → session is dead. Tell the world.
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('auth:unauthorized'))
