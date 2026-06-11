@@ -11,16 +11,19 @@ const ROOM = 'workspace'
 
 export default function ChatPanel() {
   const { user } = useAuth()
-  const [open,     setOpen]     = useState(false)
-  const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [draft,    setDraft]    = useState('')
-  const [typing,   setTyping]   = useState<string | null>(null)
+  const [open,         setOpen]         = useState(false)
+  const [messages,     setMessages]     = useState<ChatMessage[]>([])
+  const [draft,        setDraft]        = useState('')
+  const [typing,       setTyping]       = useState<string | null>(null)
+  const [historyError, setHistoryError] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   // Hydrate REST history once when opened.
   useEffect(() => {
     if (!open || !user) return
-    chatApi.history(ROOM).then(setMessages).catch(() => {})
+    chatApi.history(ROOM)
+      .then(msgs => { setMessages(msgs); setHistoryError(null) })
+      .catch((e: unknown) => setHistoryError(`Could not load history: ${(e as Error).message}`))
   }, [open, user])
 
   // Subscribe to live messages.
@@ -87,7 +90,10 @@ export default function ChatPanel() {
           </div>
 
           <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3 bg-gray-50">
-            {messages.length === 0 && (
+            {historyError && (
+              <p role="alert" className="text-center text-xs text-red-500 mt-8">{historyError}</p>
+            )}
+            {!historyError && messages.length === 0 && (
               <p className="text-center text-xs text-gray-400 mt-8">No messages yet — say hi 👋</p>
             )}
             {messages.map(m => {
