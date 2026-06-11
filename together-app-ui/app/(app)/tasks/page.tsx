@@ -13,6 +13,7 @@
 'use client'
 import { useState, useMemo, useEffect, MouseEvent } from 'react'
 import { useRouter } from 'next/navigation'
+import { api } from '@/lib/api'
 import { useTasks } from '@/context/TasksContext'
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
 import PriorityBadge from '@/components/ui/PriorityBadge'
@@ -33,6 +34,7 @@ export default function TasksPage() {
   } = useTasks()
 
   const [search,         setSearch]        = useState<string>('')
+  const [searchResults,  setSearchResults] = useState<Task[] | null>(null)
   const [filterState,    setFilterState]   = useState<TaskState | 'all'>('all')
   const [filterAssignee, setFilterAssignee] = useState<string>('all')
   const [filterPriority, setFilterPriority] = useState<Priority | 'all'>('all')
@@ -50,15 +52,30 @@ export default function TasksPage() {
     return () => clearTimeout(t)
   }, [search])
 
+  // BUG-35: server-side search so unloaded pages are included in results.
+  useEffect(() => {
+    if (!search) { setSearchResults(null); return }
+    const t = setTimeout(async () => {
+      try {
+        const page = await api.listTasks({ search, perPage: 50 })
+        setSearchResults(page.items)
+      } catch { /* silently degrade to client-side filter */ }
+    }, 400)
+    return () => clearTimeout(t)
+  }, [search])
+
   const filtered = useMemo(() => {
-    return tasks.filter(t => {
-      if (search             && !t.title.toLowerCase().includes(search.toLowerCase())) return false
+    // When server results are available, use them (pre-filtered by title).
+    // Otherwise fall back to the locally loaded pages with client-side title filter.
+    const list = searchResults !== null ? searchResults : tasks
+    return list.filter(t => {
+      if (searchResults === null && search && !t.title.toLowerCase().includes(search.toLowerCase())) return false
       if (filterState    !== 'all' && t.state      !== filterState)    return false
       if (filterAssignee !== 'all' && t.assigneeId !== filterAssignee) return false
       if (filterPriority !== 'all' && t.priority   !== filterPriority) return false
       return true
     })
-  }, [tasks, search, filterState, filterAssignee, filterPriority])
+  }, [tasks, searchResults, search, filterState, filterAssignee, filterPriority])
 
   // ── Infinite scroll plumbing ───────────────────────────────────
   // Disabled when client-side filters are active — we can't know if
