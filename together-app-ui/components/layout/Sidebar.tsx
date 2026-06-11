@@ -16,7 +16,7 @@ const NAV = [
 export default function Sidebar() {
   const pathname = usePathname();
   const { users, currentUser } = useTasks();
-  const { isAdmin } = useAuth();
+  const { isAdmin, logout } = useAuth();
   const { onlineUserIds } = usePresence();
 
   return (
@@ -148,6 +148,45 @@ export default function Sidebar() {
             </div>
           )
         })}
+      </div>
+
+      {/* Account footer — current user + /account link + sign out */}
+      <div
+        className="px-4 py-4 border-t"
+        style={{ borderColor: "rgba(255,255,255,0.08)" }}
+      >
+        <div className="flex items-center gap-2">
+          <div
+            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
+            style={{ background: currentUser?.avatarColor }}
+          >
+            {currentUser?.initials}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p
+              className="text-xs font-semibold truncate"
+              style={{ color: "rgba(255,255,255,0.85)" }}
+            >
+              {currentUser?.name}
+            </p>
+          </div>
+          <Link
+            href="/account"
+            aria-label="Account settings"
+            className="p-1.5 rounded-md transition-colors"
+            style={{ color: "rgba(255,255,255,0.4)" }}
+          >
+            ⚙
+          </Link>
+          <button
+            onClick={logout}
+            aria-label="Sign out"
+            className="p-1.5 rounded-md transition-colors"
+            style={{ color: "rgba(255,255,255,0.4)" }}
+          >
+            ⏻
+          </button>
+        </div>
       </div>
     </aside>
   );
