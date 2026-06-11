@@ -389,10 +389,10 @@ export function TasksProvider({ children }: { children: ReactNode }) {
   }, [state.tasks, refreshPending])
 
   const startGenerator = useCallback(async () => {
-    try { await api.startGenerator(); setGeneratorRunning(true) } catch { /* ignore */ }
+    await api.startGenerator(); setGeneratorRunning(true)
   }, [])
   const stopGenerator = useCallback(async () => {
-    try { await api.stopGenerator(); setGeneratorRunning(false) } catch { /* ignore */ }
+    await api.stopGenerator(); setGeneratorRunning(false)
   }, [])
 
   return (

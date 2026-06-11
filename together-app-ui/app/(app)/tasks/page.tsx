@@ -38,6 +38,7 @@ export default function TasksPage() {
   const [modalOpen,      setModalOpen]     = useState<boolean>(false)
   const [editingTask,    setEditingTask]   = useState<Task | null>(null)
   const [deleteId,       setDeleteId]      = useState<string | null>(null)
+  const [generatorError, setGeneratorError] = useState<string | null>(null)
 
   useEffect(() => {
     trackFilters({ state: filterState, assignee: filterAssignee, priority: filterPriority })
@@ -101,8 +102,13 @@ export default function TasksPage() {
   function handleRowClick(id: string) { trackTask(id); router.push(`/tasks/${id}`) }
 
   async function toggleGenerator() {
-    if (generatorRunning) await stopGenerator()
-    else                  await startGenerator()
+    setGeneratorError(null)
+    try {
+      if (generatorRunning) await stopGenerator()
+      else                  await startGenerator()
+    } catch (e) {
+      setGeneratorError(`Generator error: ${(e as Error).message}`)
+    }
   }
 
   // Prefetch sentinel goes just above the real sentinel — in practice
@@ -146,6 +152,13 @@ export default function TasksPage() {
             </button>
           </div>
         </div>
+
+        {generatorError && (
+          <div role="alert" className="mb-4 p-3 rounded-lg bg-red-50 text-red-700 text-sm flex items-center justify-between">
+            {generatorError}
+            <button onClick={() => setGeneratorError(null)} className="ml-3 text-xs underline">Dismiss</button>
+          </div>
+        )}
 
         {/* ── Stat cards ─────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
