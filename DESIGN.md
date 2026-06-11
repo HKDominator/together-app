@@ -259,7 +259,7 @@ Nested cards are prohibited. A card inside a card is always a refactoring signal
 
 The partner's live state is visible and felt across the app — this is what makes Together structurally different from every single-user task tool.
 
-- **Sidebar:** Presence dot pulses softly when the partner is online. Green + pulse = online now. Gray = offline. 2s ease-in-out animation, no reduce-motion fallback needed as long as the state change itself is communicated through color.
+- **Sidebar:** Presence dot pulses softly when the partner is online. Green + pulse = online now. Gray = offline. 2s ease-in-out animation. Under `prefers-reduced-motion: reduce` the dot is a solid color with no pulse — the online/offline state is carried entirely by color. (No animation is exempt from reduced motion, the presence pulse included.)
 - **Task rows:** A small partner avatar or initials bubble appears inline when they are viewing or editing the same task in real time.
 - **Modals:** Optional quiet indicator ("Your partner is looking at this too") for co-presence on the same record.
 - **Completion moment:** When a task moves to Done while the partner is online, the state-chip transition gets a warm-colored brief flash — slightly richer than the solo experience, never intrusive.
@@ -280,7 +280,7 @@ The indicator is deliberately understated. It signals presence without demanding
 - **Do** show partner presence on every interactive surface where it is meaningful. Dual-presence is the signature; it should be felt.
 - **Do** keep the delight inventory to three categories: completion moments, presence transitions, considered empty states. New delight outside these three requires deliberate review.
 - **Do** write empty states that feel personal — acknowledge the partnership and the situation, not the empty database row.
-- **Do** provide `@media (prefers-reduced-motion: reduce)` alternatives for every animation. Crossfade or instant; no flash.
+- **Do** provide `@media (prefers-reduced-motion: reduce)` alternatives for every animation. Crossfade or instant; no flash. This is global with no exceptions: the presence pulse becomes a solid dot, and the warm completion flash becomes a crossfade.
 - **Do** verify contrast before every ship: body text ≥4.5:1 against background, large text ≥3:1. Slate Dim (`#8FA5B8`) on white is ~2.8:1 — permitted only at label scale or as decorative, never for reading copy.
 
 ### Don't:
