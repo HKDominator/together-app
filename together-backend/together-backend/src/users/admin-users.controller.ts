@@ -5,7 +5,7 @@
 //
 // A user without 'user.manage' gets 403; a user with it gets the data.
 import {
-  Controller, Delete, Get, NotFoundException, Param, UseGuards,
+  ConflictException, Controller, Delete, Get, NotFoundException, Param, UseGuards,
 } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
@@ -35,8 +35,18 @@ export class AdminUsersController {
 
   @Delete(':id')
   async remove(@Param('id') id: string) {
-    const r = await this.users.delete(id)
-    if (!r.affected) throw new NotFoundException(`User ${id} not found`)
-    return { ok: true }
+    try {
+      const r = await this.users.delete(id)
+      if (!r.affected) throw new NotFoundException(`User ${id} not found`)
+      return { ok: true }
+    } catch (err: any) {
+      if (err instanceof NotFoundException) throw err
+      if (err?.code === '23503') {
+        throw new ConflictException(
+          `User ${id} cannot be deleted while they are referenced by tasks or comments`,
+        )
+      }
+      throw err
+    }
   }
 }
