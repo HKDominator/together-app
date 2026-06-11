@@ -8,6 +8,10 @@ import { Priority } from './entities/task.entity'
 import { CreateTaskDto } from './dto/create-task.dto'
 import { TasksGateway } from './tasks.gateway'
 
+/** BUG-10 note: running/timer state is process-local. start/stop/status
+ *  only affect the instance that handled the request; under horizontal
+ *  scaling each instance tracks its own state independently. A Redis key
+ *  or DB flag would be required for cross-instance coordination. */
 @Injectable()
 export class TaskGeneratorService implements OnModuleDestroy {
   private readonly log = new Logger(TaskGeneratorService.name)
