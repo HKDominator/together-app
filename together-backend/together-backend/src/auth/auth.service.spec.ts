@@ -101,18 +101,24 @@ describe('AuthService (unit)', () => {
 
   // BUG-07: register() must set coupleRole (couple-relationship semantics)
   // separately from the RBAC `roles` relation — both must be populated.
-  it('register() sets coupleRole for couple semantics distinct from RBAC roles', async () => {
+  // BUG-37: register() must forward the real ip/userAgent to the first session.
+  it('register() sets coupleRole distinct from RBAC roles, and forwards real session meta (BUG-07, BUG-37)', async () => {
     roles.findOne.mockResolvedValueOnce({ id: 'r1', name: 'user', permissions: [] })
     users.save.mockImplementationOnce(async (u: any) => ({ ...u, id: 'new-u', sessions: [] }))
     sessions.save.mockImplementationOnce(async (s: any) => ({ ...s, id: 'sess-1' }))
 
     await service.register(
       { email: 'new@test.com', password: 'password1234', name: 'New User' } as any,
+      { ip: '1.2.3.4', userAgent: 'Mozilla/5.0' },
     )
 
     const saved = users.save.mock.calls[0][0] as any
-    expect(saved.coupleRole).toBe('partner')      // couple-role (BUG-07: renamed from "role")
+    expect(saved.coupleRole).toBe('partner')      // couple-role (BUG-07)
     expect(Array.isArray(saved.roles)).toBe(true) // RBAC roles also populated
+
+    const sess = sessions.save.mock.calls[0][0] as any
+    expect(sess.ip).toBe('1.2.3.4')              // BUG-37: real IP, not ''
+    expect(sess.userAgent).toBe('Mozilla/5.0')   // BUG-37: real UA, not ''
   })
 
   it('verifyPin increments the counter on a wrong PIN (drives toward the cap)', async () => {

@@ -63,9 +63,10 @@ export class AuthService {
   }
 
   // ── Registration ─────────────────────────────────────────────────
-  async register(input: {
-    email: string; password: string; name: string; pin?: string
-  }): Promise<LoginResult> {
+  async register(
+    input: { email: string; password: string; name: string; pin?: string },
+    meta: { ip: string; userAgent: string } = { ip: '', userAgent: '' },
+  ): Promise<LoginResult> {
     const existing = await this.users.findOne({ where: { email: input.email } })
     if (existing) throw new ConflictException('Email already in use')
 
@@ -98,7 +99,7 @@ export class AuthService {
     // Skip MFA on first login right after register — UX trade-off so a
     // newly registered user lands in the app immediately. They'll go
     // through MFA next time.
-    return this.completeLogin(user, { ip: '', userAgent: '' })
+    return this.completeLogin(user, meta)
   }
 
   // ── Step 1: password ─────────────────────────────────────────────

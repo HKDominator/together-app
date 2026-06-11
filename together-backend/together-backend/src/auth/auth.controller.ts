@@ -45,7 +45,7 @@ export class AuthController {
       password: dto.password,
       name:     dto.name,
       pin:      dto.securityPin,
-    })
+    }, meta(req))
     this.setAuthCookies(res, result.accessToken, result.refreshToken)
     return result
   }
