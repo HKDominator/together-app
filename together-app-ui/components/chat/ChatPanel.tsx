@@ -16,6 +16,7 @@ export default function ChatPanel() {
   const [draft,        setDraft]        = useState('')
   const [typing,       setTyping]       = useState<string | null>(null)
   const [historyError, setHistoryError] = useState<string | null>(null)
+  const [sendError,    setSendError]    = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   // Hydrate REST history once when opened.
@@ -52,7 +53,12 @@ export default function ChatPanel() {
   const send = useCallback(() => {
     const body = draft.trim()
     if (!body || !user) return
-    getChatSocket().emit('chat:send', {
+    const sock = getChatSocket()
+    if (!sock.connected) {
+      setSendError('Chat is disconnected — please try again shortly.')
+      return
+    }
+    sock.emit('chat:send', {
       roomId: ROOM,
       senderId:    user.id,
       senderName:  user.name,
@@ -60,6 +66,7 @@ export default function ChatPanel() {
       body,
     })
     setDraft('')
+    setSendError(null)
   }, [draft, user])
 
   const onKey = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -123,15 +130,20 @@ export default function ChatPanel() {
             )}
           </div>
 
-          <div className="border-t bg-white p-3 flex gap-2">
-            <input
-              value={draft}
-              onChange={e => setDraft(e.target.value)}
-              onKeyDown={onKey}
-              placeholder="Type a message…"
-              className="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-200 focus:border-red-400 focus:outline-none"
-            />
-            <button onClick={send} className="px-4 py-2 rounded-lg text-white text-sm font-semibold bg-cr">Send</button>
+          <div className="border-t bg-white p-3 flex flex-col gap-1.5">
+            {sendError && (
+              <p role="alert" className="text-xs text-red-500">{sendError}</p>
+            )}
+            <div className="flex gap-2">
+              <input
+                value={draft}
+                onChange={e => setDraft(e.target.value)}
+                onKeyDown={onKey}
+                placeholder="Type a message…"
+                className="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-200 focus:border-red-400 focus:outline-none"
+              />
+              <button onClick={send} className="px-4 py-2 rounded-lg text-white text-sm font-semibold bg-cr">Send</button>
+            </div>
           </div>
         </div>
       )}
