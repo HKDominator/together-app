@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { useTasks } from "@/context/TasksContext";
 import ActivityIndicator from "./ActivityIndicator";
 import { useAuth } from "@/context/AuthContext";
+import { usePresence } from "@/context/PresenceContext";
 
 const NAV = [
   { href: "/", icon: "🏠", label: "Landing" },
@@ -16,6 +17,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const { users, currentUser } = useTasks();
   const { isAdmin } = useAuth();
+  const { onlineUserIds } = usePresence();
 
   return (
     <aside
@@ -108,38 +110,44 @@ export default function Sidebar() {
         >
           Workspace
         </p>
-        {users.map((u) => (
-          <div key={u.id} className="flex items-center gap-2.5 mb-2.5">
-            <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
-              style={{ background: u.avatarColor }}
-            >
-              {u.initials}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p
-                className="text-xs font-semibold truncate"
-                style={{ color: "rgba(255,255,255,0.85)" }}
+        {users.map((u) => {
+          // Self is always shown online — you know you're connected.
+          // Partner dot reflects real presence state from the server.
+          const isOnline = u.id === currentUser.id || onlineUserIds.has(u.id)
+          return (
+            <div key={u.id} className="flex items-center gap-2.5 mb-2.5">
+              <div
+                className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
+                style={{ background: u.avatarColor }}
               >
-                {u.name}
-              </p>
-              <p
-                className="text-xs capitalize"
-                style={{ color: "rgba(255,255,255,0.35)" }}
-              >
-                {u.role}
-              </p>
+                {u.initials}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p
+                  className="text-xs font-semibold truncate"
+                  style={{ color: "rgba(255,255,255,0.85)" }}
+                >
+                  {u.name}
+                </p>
+                <p
+                  className="text-xs capitalize"
+                  style={{ color: "rgba(255,255,255,0.35)" }}
+                >
+                  {u.role}
+                </p>
+              </div>
+              {/* motion-safe: prefix means the pulse only runs when the user
+                  has NOT enabled prefers-reduced-motion (DESIGN.md §5 — global,
+                  no exceptions). Reduced-motion users see a solid color dot. */}
+              <span
+                role="img"
+                aria-label={`${u.name} is ${isOnline ? 'online' : 'offline'}`}
+                className={`w-2 h-2 rounded-full${isOnline ? ' motion-safe:animate-pulse' : ''}`}
+                style={{ background: isOnline ? "#27AE60" : "#6B7280" }}
+              />
             </div>
-            <span
-              role="img"
-              aria-label={u.id === currentUser.id ? `${u.name} is online` : `${u.name} is offline`}
-              className="w-2 h-2 rounded-full"
-              style={{
-                background: u.id === currentUser.id ? "#27AE60" : "#6B7280",
-              }}
-            />
-          </div>
-        ))}
+          )
+        })}
       </div>
     </aside>
   );
