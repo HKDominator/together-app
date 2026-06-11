@@ -52,8 +52,9 @@ export interface TasksStats {
 }
 
 // Single-flight refresh: if one is already in-flight, all 401s share it.
+// Exported so the socket clients (lib/ws.ts) can recover a rejected handshake.
 let _refreshFlight: Promise<boolean> | null = null
-function refreshOnce(): Promise<boolean> {
+export function refreshOnce(): Promise<boolean> {
   if (!_refreshFlight) {
     _refreshFlight = fetch(`${API_URL}/auth/refresh`, { method: 'POST', credentials: 'include' })
       .then(r => r.ok)
