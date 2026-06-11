@@ -136,6 +136,8 @@ export default function LoginPage() {
                 className="w-full py-3 rounded-lg text-white text-sm font-semibold disabled:opacity-70 bg-cr">
                 {loading ? 'Signing in…' : 'Sign in →'}
               </button>
+              <button type="button" onClick={() => setStep('otp')}
+                className="text-xs text-gray-500 hover:text-gray-700">← Back</button>
             </form>
           )}
         </div>
