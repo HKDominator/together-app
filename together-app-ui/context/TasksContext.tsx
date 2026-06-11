@@ -311,17 +311,9 @@ export function TasksProvider({ children }: { children: ReactNode }) {
             if (!cancelled) setDrainError(
               `"${op.dto.title}" could not be saved: ${(err as Error).message}`
             )
-          } else {
-            try {
-              const page = await api.listTasks({ page: 1, perPage: INITIAL_PAGE_SIZE })
-              if (!cancelled) {
-                dispatch({ type: 'SET_TASKS', payload: page.items })
-                setCurrentPage(page.page)
-                setTotalTasks(page.total)
-                setTotalPages(page.totalPages)
-              }
-            } catch { /* ignore */ }
-          }
+          // Non-create failures: drop the op and continue.
+          // A full SET_TASKS reset would discard any extra pages the user
+          // had loaded — WebSocket / next natural page load will correct state.
         }
         refreshPending()
       }
