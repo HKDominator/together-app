@@ -142,7 +142,7 @@ export default function CommentsThread({ taskId }: Props) {
         {comments.map(c => {
           const u = findUser(c.authorId)
           const isMe = c.authorId === currentUserId
-          const isEdited = c.updatedAt !== c.createdAt
+          const isEdited = new Date(c.updatedAt).getTime() !== new Date(c.createdAt).getTime()
           return (
             <div key={c.id} className="flex items-start gap-3 group">
               {u && (
