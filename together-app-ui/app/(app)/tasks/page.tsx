@@ -29,6 +29,7 @@ export default function TasksPage() {
     createTask, updateTask, deleteTask,
     pendingCount, generatorRunning, startGenerator, stopGenerator,
     hasMore, totalTasks, isLoadingMore, loadMore, prefetchNext,
+    drainError, clearDrainError,
   } = useTasks()
 
   const [search,         setSearch]        = useState<string>('')
@@ -152,6 +153,13 @@ export default function TasksPage() {
             </button>
           </div>
         </div>
+
+        {drainError && (
+          <div role="alert" className="mb-4 p-3 rounded-lg bg-amber-50 text-amber-800 text-sm flex items-center justify-between">
+            {drainError}
+            <button onClick={clearDrainError} className="ml-3 text-xs underline">Dismiss</button>
+          </div>
+        )}
 
         {generatorError && (
           <div role="alert" className="mb-4 p-3 rounded-lg bg-red-50 text-red-700 text-sm flex items-center justify-between">

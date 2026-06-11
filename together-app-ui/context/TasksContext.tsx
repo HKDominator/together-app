@@ -108,6 +108,9 @@ interface TasksContextValue {
 
   startGenerator: () => Promise<void>
   stopGenerator:  () => Promise<void>
+
+  drainError:     string | null
+  clearDrainError:() => void
 }
 
 const TasksContext = createContext<TasksContextValue | null>(null)
@@ -142,6 +145,7 @@ export function TasksProvider({ children }: { children: ReactNode }) {
   const [pendingCount, setPendingCount] = useState(0)
   const [generatorRunning, setGeneratorRunning] = useState(false)
   const [users, setUsers] = useState<User[]>([])
+  const [drainError, setDrainError] = useState<string | null>(null)
   const { isOnline } = useOnlineStatus()
 
   const isOnlineRef = useRef(isOnline)
@@ -301,15 +305,23 @@ export function TasksProvider({ children }: { children: ReactNode }) {
         } catch (err) {
           if (isNetworkError(err)) break
           offlineQueue.remove(op.id)
-          try {
-            const page = await api.listTasks({ page: 1, perPage: INITIAL_PAGE_SIZE })
-            if (!cancelled) {
-              dispatch({ type: 'SET_TASKS', payload: page.items })
-              setCurrentPage(page.page)
-              setTotalTasks(page.total)
-              setTotalPages(page.totalPages)
-            }
-          } catch { /* ignore */ }
+          if (op.kind === 'create') {
+            dispatch({ type: 'REMOVE', payload: { id: op.tempId } })
+            setTotalTasks(n => Math.max(0, n - 1))
+            if (!cancelled) setDrainError(
+              `"${op.dto.title}" could not be saved: ${(err as Error).message}`
+            )
+          } else {
+            try {
+              const page = await api.listTasks({ page: 1, perPage: INITIAL_PAGE_SIZE })
+              if (!cancelled) {
+                dispatch({ type: 'SET_TASKS', payload: page.items })
+                setCurrentPage(page.page)
+                setTotalTasks(page.total)
+                setTotalPages(page.totalPages)
+              }
+            } catch { /* ignore */ }
+          }
         }
         refreshPending()
       }
@@ -417,6 +429,8 @@ export function TasksProvider({ children }: { children: ReactNode }) {
         prefetchNext,
         startGenerator,
         stopGenerator,
+        drainError,
+        clearDrainError: () => setDrainError(null),
       }}
     >
       {children}

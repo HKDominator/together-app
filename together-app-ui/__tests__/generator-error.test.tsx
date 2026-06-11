@@ -25,6 +25,7 @@ vi.mock('@/context/TasksContext', () => ({
     stopGenerator:  mockStopGenerator,
     hasMore: false, totalTasks: 0, isLoadingMore: false,
     loadMore: vi.fn(), prefetchNext: vi.fn(),
+    drainError: null, clearDrainError: vi.fn(),
   }),
 }))
 
