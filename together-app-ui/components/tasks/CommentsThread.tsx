@@ -12,6 +12,7 @@
 'use client'
 import { useCallback, useEffect, useState, KeyboardEvent } from 'react'
 import { api, isNetworkError } from '@/lib/api'
+import { getSocket } from '@/lib/ws'
 import { useTasks } from '@/context/TasksContext'
 import { useAuth } from '@/context/AuthContext'
 import type { Comment } from '@/types'
@@ -44,6 +45,31 @@ export default function CommentsThread({ taskId }: Props) {
       }
     })()
     return () => { cancelled = true }
+  }, [taskId])
+
+  // ── Realtime WS subscription (BUG-33) ─────────────────────────
+  useEffect(() => {
+    const sock = getSocket()
+    const onCreated = (c: Comment) => {
+      if (c.taskId !== taskId) return
+      setComments(prev => prev.some(x => x.id === c.id) ? prev : [...prev, c])
+    }
+    const onUpdated = (c: Comment) => {
+      if (c.taskId !== taskId) return
+      setComments(prev => prev.map(x => x.id === c.id ? c : x))
+    }
+    const onDeleted = ({ id, taskId: tId }: { id: string; taskId: string }) => {
+      if (tId !== taskId) return
+      setComments(prev => prev.filter(x => x.id !== id))
+    }
+    sock.on('comment:created', onCreated)
+    sock.on('comment:updated', onUpdated)
+    sock.on('comment:deleted', onDeleted)
+    return () => {
+      sock.off('comment:created', onCreated)
+      sock.off('comment:updated', onUpdated)
+      sock.off('comment:deleted', onDeleted)
+    }
   }, [taskId])
 
   // ── Add ────────────────────────────────────────────────────────

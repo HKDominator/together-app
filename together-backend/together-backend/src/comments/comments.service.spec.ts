@@ -1,11 +1,13 @@
 // BUG-03 / identity wire: CommentsService must use the caller's id for
 // authorship and ownership checks, not resolveDefaultAuthor().
+// BUG-33: CommentsService must emit WS events after each mutation.
 import { Test, TestingModule } from '@nestjs/testing'
 import { ForbiddenException, NotFoundException } from '@nestjs/common'
 import { CommentsService } from './comments.service'
 import { CommentsRepository } from './comments.repository'
 import { TasksRepository } from '../tasks/tasks.repository'
 import { UsersService } from '../users/users.service'
+import { TasksGateway } from '../tasks/tasks.gateway'
 import { Comment } from './entities/comment.entity'
 
 const makeComment = (over: Partial<Comment> = {}): Comment => ({
@@ -18,6 +20,7 @@ describe('CommentsService (unit, identity wire)', () => {
   let service:  CommentsService
   let repo:     jest.Mocked<CommentsRepository>
   let tasksR:   jest.Mocked<TasksRepository>
+  let gateway:  jest.Mocked<TasksGateway>
 
   beforeEach(async () => {
     const repoMock = {
@@ -36,18 +39,26 @@ describe('CommentsService (unit, identity wire)', () => {
 
     const usersServiceMock = {} as jest.Mocked<UsersService>
 
+    const gatewayMock = {
+      emitCommentCreated: jest.fn(),
+      emitCommentUpdated: jest.fn(),
+      emitCommentDeleted: jest.fn(),
+    } as unknown as jest.Mocked<TasksGateway>
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CommentsService,
         { provide: CommentsRepository, useValue: repoMock },
         { provide: TasksRepository,    useValue: tasksRepoMock },
         { provide: UsersService,       useValue: usersServiceMock },
+        { provide: TasksGateway,       useValue: gatewayMock },
       ],
     }).compile()
 
     service = module.get(CommentsService)
     repo    = module.get(CommentsRepository) as jest.Mocked<CommentsRepository>
     tasksR  = module.get(TasksRepository)    as jest.Mocked<TasksRepository>
+    gateway = module.get(TasksGateway)       as jest.Mocked<TasksGateway>
   })
 
   // ── create ────────────────────────────────────────────────────────
@@ -89,6 +100,32 @@ describe('CommentsService (unit, identity wire)', () => {
       repo.findById.mockResolvedValue(makeComment({ authorId: 'u-author' }))
       repo.remove.mockResolvedValue(true)
       await expect(service.remove('c-1', 'u-author')).resolves.toBeUndefined()
+    })
+  })
+
+  // ── WS emit (BUG-33) ──────────────────────────────────────────────
+  describe('WS emit (BUG-33)', () => {
+    it('emits comment:created after successful create', async () => {
+      const comment = makeComment()
+      repo.insert.mockResolvedValue(comment)
+      await service.create('t-1', { body: 'hi' }, 'caller-uuid')
+      expect(gateway.emitCommentCreated).toHaveBeenCalledWith(comment)
+    })
+
+    it('emits comment:updated after successful update', async () => {
+      const comment = makeComment({ body: 'edited' })
+      repo.findById.mockResolvedValue(makeComment({ authorId: 'u-author' }))
+      repo.update.mockResolvedValue(comment)
+      await service.update('c-1', { body: 'edited' }, 'u-author')
+      expect(gateway.emitCommentUpdated).toHaveBeenCalledWith(comment)
+    })
+
+    it('emits comment:deleted after successful remove', async () => {
+      const comment = makeComment()
+      repo.findById.mockResolvedValue(comment)
+      repo.remove.mockResolvedValue(true)
+      await service.remove('c-1', 'u-author')
+      expect(gateway.emitCommentDeleted).toHaveBeenCalledWith('c-1', 't-1')
     })
   })
 })

@@ -8,13 +8,15 @@ import { CreateCommentDto } from './dto/create-comment.dto'
 import { UpdateCommentDto } from './dto/update-comment.dto'
 import { TasksRepository } from '../tasks/tasks.repository'
 import { UsersService } from '../users/users.service'
+import { TasksGateway } from '../tasks/tasks.gateway'
 
 @Injectable()
 export class CommentsService {
   constructor(
-    private readonly repo:  CommentsRepository,
-    private readonly tasks: TasksRepository,
-    private readonly users: UsersService,
+    private readonly repo:    CommentsRepository,
+    private readonly tasks:   TasksRepository,
+    private readonly users:   UsersService,
+    private readonly gateway: TasksGateway,
   ) {}
 
   async listForTask(taskId: string): Promise<Comment[]> {
@@ -34,11 +36,9 @@ export class CommentsService {
 
   async create(taskId: string, dto: CreateCommentDto, authorId: string): Promise<Comment> {
     await this.assertTaskExists(taskId)
-    return this.repo.insert({
-      taskId,
-      authorId,
-      body: dto.body.trim(),
-    })
+    const comment = await this.repo.insert({ taskId, authorId, body: dto.body.trim() })
+    this.gateway.emitCommentCreated(comment)
+    return comment
   }
 
   async update(id: string, dto: UpdateCommentDto, callerId: string): Promise<Comment> {
@@ -49,6 +49,7 @@ export class CommentsService {
     if (!dto.body) return c
     const updated = await this.repo.update(id, dto.body.trim())
     if (!updated) throw new NotFoundException(`Comment ${id} not found`)
+    this.gateway.emitCommentUpdated(updated)
     return updated
   }
 
@@ -58,6 +59,7 @@ export class CommentsService {
       throw new ForbiddenException('Only the author can delete this comment')
     }
     await this.repo.remove(id)
+    this.gateway.emitCommentDeleted(id, c.taskId)
   }
 
   cascadeOnTaskDeletion(taskId: string): Promise<number> {

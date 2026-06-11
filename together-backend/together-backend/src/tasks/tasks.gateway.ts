@@ -61,4 +61,11 @@ export class TasksGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   emitGeneratorStarted(): void { this.server?.emit('generator:started') }
   emitGeneratorStopped(): void { this.server?.emit('generator:stopped') }
+
+  // BUG-33: comment realtime events
+  emitCommentCreated(comment: object): void { this.server?.emit('comment:created', comment) }
+  emitCommentUpdated(comment: object): void { this.server?.emit('comment:updated', comment) }
+  emitCommentDeleted(id: string, taskId: string): void {
+    this.server?.emit('comment:deleted', { id, taskId })
+  }
 }
