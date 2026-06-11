@@ -168,6 +168,10 @@ export function TasksProvider({ children }: { children: ReactNode }) {
   const ownCreatedIds = useRef(new Set<string>())
   const ownDeletedIds = useRef(new Set<string>())
 
+  // BUG-26: track whether the socket has ever connected so we can distinguish
+  // initial connect (skip — initial hydrate handles it) from reconnect (resync).
+  const hasConnectedRef = useRef(false)
+
   const refreshPending = useCallback(() => setPendingCount(offlineQueue.size()), [])
 
   const hasMore = currentPage < totalPages
@@ -252,6 +256,20 @@ export function TasksProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const sock = getSocket()
 
+    const onConnect = () => {
+      if (!hasConnectedRef.current) { hasConnectedRef.current = true; return }
+      // Reconnect: fetch page 1 to catch events missed while disconnected.
+      api.listTasks({ page: 1, perPage: INITIAL_PAGE_SIZE })
+        .then(page => {
+          dispatch({ type: 'SET_TASKS', payload: page.items })
+          setCurrentPage(page.page)
+          setTotalTasks(page.total)
+          setTotalPages(page.totalPages)
+          prefetchedPageRef.current.clear()
+        })
+        .catch(() => {})
+    }
+
     const onCreated = (t: Task) => {
       dispatch({ type: 'UPSERT', payload: t })
       prefetchedPageRef.current.clear()
@@ -274,6 +292,7 @@ export function TasksProvider({ children }: { children: ReactNode }) {
     const onGenStart = () => setGeneratorRunning(true)
     const onGenStop  = () => setGeneratorRunning(false)
 
+    sock.on('connect',           onConnect)
     sock.on('task:created',      onCreated)
     sock.on('task:updated',      onUpdated)
     sock.on('task:deleted',      onDeleted)
@@ -281,6 +300,7 @@ export function TasksProvider({ children }: { children: ReactNode }) {
     sock.on('generator:stopped', onGenStop)
 
     return () => {
+      sock.off('connect',           onConnect)
       sock.off('task:created',      onCreated)
       sock.off('task:updated',      onUpdated)
       sock.off('task:deleted',      onDeleted)
