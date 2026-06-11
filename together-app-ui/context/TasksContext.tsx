@@ -75,10 +75,18 @@ export function tasksReducer(state: ReducerState, action: Action): ReducerState 
     case 'REMOVE':
       return { ...state, tasks: state.tasks.filter(t => t.id !== action.payload.id) }
     case 'REPLACE_ID': {
-      const idx = state.tasks.findIndex(t => t.id === action.payload.oldId)
-      if (idx === -1) return { ...state, tasks: [action.payload.task, ...state.tasks] }
-      const next = state.tasks.slice(); next[idx] = action.payload.task
-      return { ...state, tasks: next }
+      const realId  = action.payload.task.id
+      const idx     = state.tasks.findIndex(t => t.id === action.payload.oldId)
+      if (idx === -1) {
+        // tempId already gone (WS beat us) — update in place or prepend once.
+        return state.tasks.some(t => t.id === realId)
+          ? { ...state, tasks: state.tasks.map(t => t.id === realId ? action.payload.task : t) }
+          : { ...state, tasks: [action.payload.task, ...state.tasks] }
+      }
+      const next = state.tasks.slice()
+      next[idx] = action.payload.task
+      // Dedup: WS echo may have prepended a real-id entry before we got here.
+      return { ...state, tasks: next.filter((t, i) => i === idx || t.id !== realId) }
     }
     default:
       return state
