@@ -287,6 +287,7 @@ export function TasksProvider({ children }: { children: ReactNode }) {
           if (op.kind === 'create') {
             const real = await api.createTask(op.dto)
             dispatch({ type: 'REPLACE_ID', payload: { oldId: op.tempId, task: real } })
+            offlineQueue.remapTempId(op.tempId, real.id)
           } else if (op.kind === 'update') {
             const real = await api.updateTask(op.taskId, op.dto)
             dispatch({ type: 'UPSERT', payload: real })

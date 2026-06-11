@@ -77,6 +77,19 @@ export const offlineQueue = {
     save(load().filter(op => op.id !== opId))
   },
 
+  /** Rewrite all queued ops that reference oldTempId to use the real server id.
+   *  Called immediately after a queued create drains successfully so that
+   *  subsequent update/delete/state ops targeting the same task don't send
+   *  the temp id to the server (which would produce a 404). */
+  remapTempId(oldTempId: string, newId: string): void {
+    const updated = load().map(op => {
+      if (op.kind === 'create') return op  // create ops use tempId field, not taskId
+      if ('taskId' in op && op.taskId === oldTempId) return { ...op, taskId: newId }
+      return op
+    })
+    save(updated)
+  },
+
   /** Nuke everything — manual reset / testing. */
   clear(): void {
     if (typeof window === 'undefined') return
