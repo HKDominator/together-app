@@ -5,9 +5,10 @@
 // and the one JSX line are new; everything else is the Silver version.
 // ─────────────────────────────────────────────────────────────────────
 'use client'
-import { ReactNode, use, useState } from 'react'
+import { ReactNode, use, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTasks, VALID_TRANSITIONS } from '@/context/TasksContext'
+import { usePresence } from '@/context/PresenceContext'
 import PriorityBadge from '@/components/ui/PriorityBadge'
 import StateChip     from '@/components/ui/StateChip'
 import TaskFormModal from '@/components/tasks/TaskFormModal'
@@ -18,15 +19,25 @@ const STATE_ORDER: TaskState[] = ['todo', 'in_progress', 'done']
 
 interface Props { params: Promise<{ id: string }> }
 
-export default function TaskDetailPage({ params }: Props) {
-  const { id } = use(params)
+// Exported so tests can render it directly without the async-params wrapper.
+export function TaskDetailContent({ id }: { id: string }) {
   const router = useRouter()
-  const { tasks, users, updateTask, deleteTask, setTaskState } = useTasks()
+  const { tasks, users, currentUser, updateTask, deleteTask, setTaskState } = useTasks()
+  const { setViewingTask, viewingByUser } = usePresence()
 
-  const task = tasks.find(t => t.id === id)
+  // FD-06: tell the server this user is looking at this task. Clears on leave.
+  useEffect(() => {
+    setViewingTask(id)
+    return () => { setViewingTask(null) }
+  }, [id, setViewingTask])
+
+  const partner = users.find(u => u.id !== currentUser?.id)
+  const partnerViewingThis = !!partner && viewingByUser[partner.id] === id
 
   const [editOpen,   setEditOpen]   = useState<boolean>(false)
   const [deleteOpen, setDeleteOpen] = useState<boolean>(false)
+
+  const task = tasks.find(t => t.id === id)
 
   if (!task) {
     return (
@@ -82,6 +93,18 @@ export default function TaskDetailPage({ params }: Props) {
             <StateChip state={task.state} />
             {isOverdue && <span className="text-xs text-red-600 font-semibold">⚠ Overdue</span>}
           </div>
+
+          {/* FD-06: quiet co-presence nudge — shown only when the partner is
+              simultaneously on this same task page. Screen reader reads the text. */}
+          {partnerViewingThis && (
+            <p
+              className="flex items-center gap-1.5 text-xs text-gray-400 mb-3"
+              aria-label={`${partner!.name} is looking at this too`}
+            >
+              <span className="w-2 h-2 rounded-full bg-green-400 motion-safe:animate-pulse" aria-hidden="true" />
+              {partner!.name} is looking at this too
+            </p>
+          )}
 
           <h1 className="font-display text-2xl font-bold text-gray-700 mb-4">{task.title}</h1>
 
@@ -292,4 +315,9 @@ function ActivityItem({ user, action, time }: ActivityItemProps) {
       </div>
     </div>
   )
+}
+
+export default function TaskDetailPage({ params }: Props) {
+  const { id } = use(params)
+  return <TaskDetailContent id={id} />
 }

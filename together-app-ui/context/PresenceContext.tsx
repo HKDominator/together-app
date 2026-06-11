@@ -65,6 +65,9 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const setViewingTask = useCallback((taskId: string | null) => {
+    // BUG-25: offline-created tmp_ ids have no shared server record to co-view.
+    // Silently ignore so a page that mounts with a temp id never leaks a ghost focus.
+    if (typeof taskId === 'string' && taskId.startsWith('tmp_')) return
     viewingTaskRef.current = taskId
     getSocket().emit('presence:viewing', { taskId })
   }, [])
@@ -76,8 +79,14 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
   )
 }
 
+// Safe empty default — presence is "soft" data. Components outside
+// <PresenceProvider> (e.g. in isolation tests) simply see everyone offline.
+const EMPTY_PRESENCE: PresenceContextValue = {
+  onlineUserIds:  new Set(),
+  viewingByUser:  {},
+  setViewingTask: () => {},
+}
+
 export function usePresence(): PresenceContextValue {
-  const ctx = useContext(PresenceContext)
-  if (!ctx) throw new Error('usePresence must be used inside <PresenceProvider>')
-  return ctx
+  return useContext(PresenceContext) ?? EMPTY_PRESENCE
 }

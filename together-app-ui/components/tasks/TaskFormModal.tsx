@@ -4,6 +4,7 @@ import { validateTask, isValid } from '@/lib/validation'
 import FormInput from '@/components/ui/FormInput'
 import { Task, TaskFormData, ValidatedTaskData, ValidationErrors } from '@/types'
 import { useTasks } from '@/context/TasksContext'
+import { usePresence } from '@/context/PresenceContext'
 
 interface Props {
   isOpen:   boolean
@@ -34,6 +35,7 @@ export default function TaskFormModal({ isOpen, task, onClose, onSubmit }: Props
 
   const mode = task ? 'edit' : 'create'
   const users = useTasks().users
+  const { setViewingTask } = usePresence()
 
   // Sync form state whenever we open OR the task prop changes.
   useEffect(() => {
@@ -43,6 +45,14 @@ export default function TaskFormModal({ isOpen, task, onClose, onSubmit }: Props
       setErrors({})
     })
   }, [task, isOpen])
+
+  // FD-06: register viewing focus while the edit modal is open. Create mode
+  // and tmp_ ids have no shared server record, so they're no-ops (BUG-25).
+  useEffect(() => {
+    if (!isOpen || !task?.id || task.id.startsWith('tmp_')) return
+    setViewingTask(task.id)
+    return () => { setViewingTask(null) }
+  }, [task?.id, isOpen, setViewingTask])
 
   if (!isOpen) return null
 

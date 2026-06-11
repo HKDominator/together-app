@@ -15,6 +15,7 @@ import { useState, useMemo, useEffect, MouseEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { useTasks } from '@/context/TasksContext'
+import { usePresence } from '@/context/PresenceContext'
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
 import PriorityBadge from '@/components/ui/PriorityBadge'
 import StateChip     from '@/components/ui/StateChip'
@@ -26,12 +27,15 @@ import { trackSearch, trackFilters, trackTask } from '@/lib/activity'
 export default function TasksPage() {
   const router = useRouter()
   const {
-    tasks, users,
+    tasks, users, currentUser,
     createTask, updateTask, deleteTask,
     pendingCount, generatorRunning, startGenerator, stopGenerator,
     hasMore, totalTasks, isLoadingMore, loadMore, prefetchNext,
     drainError, clearDrainError,
   } = useTasks()
+  const { viewingByUser } = usePresence()
+  const partner = users.find(u => u.id !== currentUser?.id)
+  const partnerViewingTaskId = partner ? (viewingByUser[partner.id] ?? null) : null
 
   const [search,         setSearch]        = useState<string>('')
   const [searchResults,  setSearchResults] = useState<Task[] | null>(null)
@@ -281,10 +285,24 @@ export default function TasksPage() {
                 >
                   <div className="relative">
                     {isPrefetchRow && <div ref={prefetchRef} className="absolute inset-0 pointer-events-none" />}
-                    <p className="text-sm font-medium text-gray-800 truncate max-w-xs">
-                      {t.title}
-                      {isOptimistic && <span className="ml-2 text-xs text-amber-600">· syncing</span>}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium text-gray-800 truncate max-w-xs">
+                        {t.title}
+                        {isOptimistic && <span className="ml-2 text-xs text-amber-600">· syncing</span>}
+                      </p>
+                      {/* FD-06: partner is looking at this task right now */}
+                      {partnerViewingTaskId === t.id && partner && (
+                        <span
+                          role="img"
+                          aria-label={`${partner.name} is viewing this task`}
+                          title={`${partner.name} is viewing this task`}
+                          className="w-5 h-5 rounded-full flex items-center justify-center text-white shrink-0"
+                          style={{ background: partner.avatarColor, fontSize: 11 }}
+                        >
+                          {partner.initials}
+                        </span>
+                      )}
+                    </div>
                     {t.description && (
                       <p className={`text-xs truncate max-w-xs mt-0.5 ${isOverdue ? 'text-red-700' : 'text-gray-500'}`}>{t.description}</p>
                     )}

@@ -110,6 +110,25 @@ describe('PresenceContext (FD-06)', () => {
     expect(mockEmit).toHaveBeenCalledWith('presence:viewing', { taskId: 't99' })
   })
 
+  it('setViewingTask is a no-op for tmp_* ids — no emit, no ref update (BUG-25 guard)', async () => {
+    function Btn() {
+      const { setViewingTask } = usePresence()
+      return (
+        <>
+          <button onClick={() => setViewingTask('tmp_123_abc')}>tmp</button>
+        </>
+      )
+    }
+    const { getByText } = render(<PresenceProvider><Btn /></PresenceProvider>)
+
+    act(() => { getByText('tmp').click() })
+    expect(mockEmit).not.toHaveBeenCalled()
+
+    // Reconnect must not re-emit the blocked tmp id
+    act(() => { emitWs('connect') })
+    expect(mockEmit).not.toHaveBeenCalled()
+  })
+
   it('re-emits the current viewing focus on socket reconnect so the server record is fresh', async () => {
     function Btn() {
       const { setViewingTask } = usePresence()
