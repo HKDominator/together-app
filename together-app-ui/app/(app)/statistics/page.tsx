@@ -5,13 +5,12 @@ import { Priority, TaskState } from '@/types'
 import PriorityBadge from '@/components/ui/PriorityBadge'
 import StateChip from '@/components/ui/StateChip'
 
-const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000
 
 // ── Animated counter hook ──────────────────────────────────────────────
 function useCountUp(target: number, duration = 800) {
   const [value, setValue] = useState(0)
   useEffect(() => {
-    //if (!Number.isFinite(target) || target <= 0) { setValue(0); return }
     let start = 0
     const step = target / (duration / 16)
     const timer = setInterval(() => {
@@ -81,44 +80,24 @@ function DonutChart({ data }: { data: { label: string; value: number; color: str
   )
 }
 
-// ── Bar chart ──────────────────────────────────────────────────────────
-function BarChart({ anaData, danData, labels }: {
-  anaData: number[]
-  danData: number[]
-  labels:  string[]
-}) {
-  const maxVal = Math.max(...anaData, ...danData, 1)
+// ── Moved Together chart ───────────────────────────────────────────────
+// Single-color bars — total tasks moved to done per week, last 6 weeks.
+// No per-person split (ADR-0001).
+function MovedTogetherChart({ data }: { data: { label: string; count: number }[] }) {
+  const maxVal = Math.max(...data.map(w => w.count), 1)
   const H = 120
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-end gap-2 h-32">
-        {labels.map((label, i) => (
-          <div key={label} className="flex-1 flex flex-col items-center gap-1">
-            <div className="flex items-end gap-0.5 w-full justify-center" style={{ height: H }}>
-              <div
-                className="flex-1 rounded-t-sm transition-all duration-700 bg-cr"
-                style={{ height: `${(anaData[i] / maxVal) * H}px`, opacity: 0.85, minHeight: 2 }}
-              />
-              <div
-                className="flex-1 rounded-t-sm transition-all duration-700"
-                style={{ height: `${(danData[i] / maxVal) * H}px`, background: '#2980B9', opacity: 0.85, minHeight: 2 }}
-              />
-            </div>
-            <span className="text-xs text-gray-400">{label}</span>
-          </div>
-        ))}
-      </div>
-      <div className="flex gap-4 text-xs">
-        <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-sm bg-cr" />
-          <span className="text-gray-500">Ana</span>
+    <div className="flex items-end gap-2 h-32">
+      {data.map(w => (
+        <div key={w.label} className="flex-1 flex flex-col items-center gap-1">
+          <div
+            className="w-full rounded-t-sm bg-cr motion-safe:transition-all motion-safe:duration-700"
+            style={{ height: `${Math.max((w.count / maxVal) * H, 2)}px` }}
+          />
+          <span className="text-xs text-gray-400">{w.label}</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-sm" style={{ background: '#2980B9' }} />
-          <span className="text-gray-500">Dan</span>
-        </div>
-      </div>
+      ))}
     </div>
   )
 }
@@ -129,20 +108,28 @@ export default function StatisticsPage() {
 
   // ── Derived stats ──────────────────────────────────────────────────
   const total      = tasks.length
-  const inProgress = tasks.filter(t => t.state === 'in_progress').length
   const done       = tasks.filter(t => t.state === 'done').length
   const overdue    = tasks.filter(t =>
     t.dueDate && new Date(t.dueDate) < new Date() &&
     t.state !== 'done' && t.state !== 'cancelled'
   ).length
 
-  const totalCount      = useCountUp(total)
-  const completionRate  = useCountUp(total ? Math.round(done / total * 100) : 0)
+  const totalCount     = useCountUp(total)
+  const completionRate = useCountUp(total ? Math.round(done / total * 100) : 0)
 
   const recentCount = useMemo(() => {
-    const cutoff = new Date().getTime() - THIRTY_DAYS_MS
+    const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000
     return tasks.filter(t => new Date(t.createdAt).getTime() > cutoff).length
   }, [tasks])
+
+  // Done this week — real count, no animation needed
+  const doneThisWeek = useMemo(() => {
+    const cutoff = Date.now() - WEEK_MS
+    return tasks.filter(t => t.state === 'done' && new Date(t.updatedAt).getTime() > cutoff).length
+  }, [tasks])
+
+  // Completion rate as a plain number for summary line (no animation)
+  const completionRatePlain = total ? Math.round(done / total * 100) : 0
 
   const donutData = [
     { label: 'Done',        value: tasks.filter(t => t.state === 'done').length,        color: '#27AE60' },
@@ -157,52 +144,35 @@ export default function StatisticsPage() {
     { label: '▼ Low',    value: tasks.filter(t => t.priority === 'low').length,    pct: total ? Math.round(tasks.filter(t => t.priority === 'low').length    / total * 100) : 0, color: '#27AE60' },
   ]
 
-  // Per-user stats
-  const userStats = users.map(u => {
-    const mine      = tasks.filter(t => t.assigneeId === u.id)
-    const doneCount = mine.filter(t => t.state === 'done').length
-    const score     = mine.length ? Math.round((doneCount / Math.max(mine.length, 1)) * 5 * 10) / 10 : 0
-    return { user: u, total: mine.length, done: doneCount, score: Math.min(score, 5) }
-  })
-
-  // Bar chart — monthly (simulated from seed dates)
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May']
-  const anaBar = [3, 5, 6, 4, 7]
-  const danBar = [2, 4, 5, 5, 5]
-
-  const monthlyData = useMemo(() => {
+  // Last 6 weeks — total tasks moved to done (shared, no per-person split)
+  const weeklyData = useMemo(() => {
     const now = new Date()
-    const u1 = users[0]?.id
-    const u2 = users[1]?.id
-    const buckets: { label: string; ana: number; dan: number }[] = []
-    for (let i = 4; i >= 0; i--) {
-      const start = new Date(now.getFullYear(), now.getMonth() - i, 1)
-      const end   = new Date(now.getFullYear(), now.getMonth() - i + 1, 1)
-      const label = start.toLocaleDateString('en-US', { month: 'short' })
-      let ana = 0, dan = 0
-      for (const t of tasks) {
-        if (t.state !== 'done') continue
+    const buckets: { label: string; count: number }[] = []
+    for (let i = 5; i >= 0; i--) {
+      const start = new Date(now)
+      start.setDate(start.getDate() - i * 7 - 6)
+      start.setHours(0, 0, 0, 0)
+      const end = new Date(start)
+      end.setDate(end.getDate() + 7)
+      const label = start.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+      const count = tasks.filter(t => {
+        if (t.state !== 'done') return false
         const d = new Date(t.updatedAt)
-        if (d < start || d >= end) continue
-        if (t.assigneeId === u1) ana++
-        else if (t.assigneeId === u2) dan++
-      }
-      buckets.push({ label, ana, dan })
+        return d >= start && d < end
+      }).length
+      buckets.push({ label, count })
     }
     return buckets
-  }, [tasks, users])
-
-  // Ranked tasks for tabular view
-  const rankedTasks = useMemo(() => {
-    return [...tasks]
-      .sort((a, b) => {
-        const pMap: Record<Priority, number> = { high: 3, medium: 2, low: 1 }
-        const sMap: Record<TaskState, number> = { done: 3, in_progress: 2, todo: 1, cancelled: 0 }
-        return (pMap[b.priority] + sMap[b.state]) - (pMap[a.priority] + sMap[a.state])
-      })
   }, [tasks])
 
-  const medals = ['🥇', '🥈', '🥉']
+  // Ranked tasks for tabular view (by priority + state score)
+  const rankedTasks = useMemo(() => {
+    return [...tasks].sort((a, b) => {
+      const pMap: Record<Priority, number> = { high: 3, medium: 2, low: 1 }
+      const sMap: Record<TaskState, number> = { done: 3, in_progress: 2, todo: 1, cancelled: 0 }
+      return (pMap[b.priority] + sMap[b.state]) - (pMap[a.priority] + sMap[a.state])
+    })
+  }, [tasks])
 
   return (
     <div className="p-9">
@@ -213,7 +183,6 @@ export default function StatisticsPage() {
           <h1 className="font-display text-3xl font-bold text-gray-800 mb-1">Statistics</h1>
           <p className="text-xs text-gray-500">Workspace › Statistics › Tasks Overview</p>
         </div>
-        {/* Toggle */}
         <div className="flex bg-white rounded-lg p-1 gap-1 border border-gray-100 shadow-sm">
           <button
             onClick={() => setView('visual')}
@@ -232,13 +201,13 @@ export default function StatisticsPage() {
         </div>
       </div>
 
-      {/* ── Summary cards ───────────────────────────── */}
+      {/* ── Summary cards (real data, no fabricated metrics) ─────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {[
-          { icon: '✅', label: 'Total Tasks',      value: totalCount,     sub: `+${recentCount} this month`, up: true },
-          { icon: '🎯', label: 'Completion Rate',  value: `${completionRate}%`, sub: '+12% vs last month', up: true },
-          { icon: '⚠️', label: 'Overdue Tasks',    value: overdue,        sub: 'Need action',  up: false },
-          { icon: '⚖️', label: 'Ana / Dan Split',  value: `${userStats[0]?.total ?? 0}/${userStats[1]?.total ?? 0}`, sub: 'Balanced', up: true },
+          { icon: '✅', label: 'Total Tasks',     value: totalCount,          sub: `+${recentCount} this month`, up: true  },
+          { icon: '🎯', label: 'Completion Rate', value: `${completionRate}%`, sub: `${done} of ${total} done`,  up: true  },
+          { icon: '⚠️', label: 'Overdue Tasks',   value: overdue,             sub: 'need attention',             up: false },
+          { icon: '🤝', label: 'Done This Week',  value: doneThisWeek,        sub: 'moved together',             up: true  },
         ].map(s => (
           <div key={s.label} className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm">
             <div className="text-2xl mb-2">{s.icon}</div>
@@ -256,14 +225,20 @@ export default function StatisticsPage() {
         <div className="flex flex-col gap-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-            {/* Bar chart */}
+            {/* Moved Together chart — replaces the per-person BarChart (CR-07) */}
             <div className="bg-white rounded-2xl p-7 border border-gray-100 shadow-sm">
-              <h2 className="font-display text-lg font-semibold text-gray-800 mb-1">Tasks Completed</h2>
-              <p className="text-xs text-gray-400 mb-6">Monthly comparison — Ana vs Dan</p>
-              <BarChart anaData={monthlyData.map(m => m.ana)} danData={monthlyData.map(m => m.dan)} labels={monthlyData.map(m => m.label)} />
+              <h2 className="font-display text-lg font-semibold text-gray-800 mb-1">Moved Together</h2>
+              <p className="text-xs text-gray-400 mb-2">Weekly tasks moved to done — shared progress</p>
+              <p className="text-sm text-gray-600 mb-1">
+                <strong className="font-semibold text-gray-800">{doneThisWeek}</strong>{' '}tasks done this week
+              </p>
+              <p className="text-sm text-gray-600 mb-6">
+                <strong className="font-semibold text-gray-800">{completionRatePlain}%</strong>{' '}completion rate overall
+              </p>
+              <MovedTogetherChart data={weeklyData} />
             </div>
 
-            {/* Donut */}
+            {/* Donut — kept unchanged */}
             <div className="bg-white rounded-2xl p-7 border border-gray-100 shadow-sm">
               <h2 className="font-display text-lg font-semibold text-gray-800 mb-1">Status Breakdown</h2>
               <p className="text-xs text-gray-400 mb-6">Current distribution across all tasks</p>
@@ -271,57 +246,25 @@ export default function StatisticsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-            {/* Priority split */}
-            <div className="bg-white rounded-2xl p-7 border border-gray-100 shadow-sm">
-              <h2 className="font-display text-lg font-semibold text-gray-800 mb-1">Priority Split</h2>
-              <p className="text-xs text-gray-400 mb-6">Distribution by urgency</p>
-              <div className="flex flex-col gap-4">
-                {priorityData.map(p => (
-                  <div key={p.label}>
-                    <div className="flex justify-between text-xs mb-1.5">
-                      <span className="text-gray-700 font-medium">{p.label}</span>
-                      <span className="text-gray-400">{p.value} · {p.pct}%</span>
-                    </div>
-                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all duration-700"
-                        style={{ width: `${p.pct}%`, background: p.color }}
-                      />
-                    </div>
+          {/* Priority split — Contribution Ranking section deleted (FD-03) */}
+          <div className="bg-white rounded-2xl p-7 border border-gray-100 shadow-sm">
+            <h2 className="font-display text-lg font-semibold text-gray-800 mb-1">Priority Split</h2>
+            <p className="text-xs text-gray-400 mb-6">Distribution by urgency</p>
+            <div className="flex flex-col gap-4 max-w-md">
+              {priorityData.map(p => (
+                <div key={p.label}>
+                  <div className="flex justify-between text-xs mb-1.5">
+                    <span className="text-gray-700 font-medium">{p.label}</span>
+                    <span className="text-gray-400">{p.value} · {p.pct}%</span>
                   </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Contribution ranking */}
-            <div className="bg-white rounded-2xl p-7 border border-gray-100 shadow-sm lg:col-span-2">
-              <h2 className="font-display text-lg font-semibold text-gray-800 mb-1">Contribution Ranking ⭐</h2>
-              <p className="text-xs text-gray-400 mb-6">Based on tasks completed, on-time rate, and difficulty</p>
-              <div className="flex flex-col gap-3">
-                {[...userStats]
-                  .sort((a, b) => b.score - a.score)
-                  .map((s, i) => (
-                    <div key={s.user.id} className="flex items-center gap-4 py-3 border-b border-gray-50 last:border-b-0">
-                      <span className="text-xl w-8">{medals[i] ?? `${i + 1}`}</span>
-                      <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
-                        style={{ background: s.user.avatarColor }}>
-                        {s.user.initials}
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-sm font-semibold text-gray-800">{s.user.name}</div>
-                        <div className="text-xs text-gray-400">{s.done} done · {s.total} total</div>
-                      </div>
-                      <div className="flex gap-0.5 text-sm">
-                        {Array.from({ length: 5 }).map((_, j) => (
-                          <span key={j} style={{ opacity: j < Math.round(s.score) ? 1 : 0.2 }}>⭐</span>
-                        ))}
-                      </div>
-                      <span className="font-display text-lg font-bold text-gray-700 ml-2">{s.score.toFixed(1)}</span>
-                    </div>
-                  ))}
-              </div>
+                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-700"
+                      style={{ width: `${p.pct}%`, background: p.color }}
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -330,21 +273,20 @@ export default function StatisticsPage() {
       {/* ══ TABULAR VIEW ═════════════════════════════ */}
       {view === 'tabular' && (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="grid grid-cols-[40px_2fr_1fr_1fr_1fr_1fr_1fr] px-6 py-3 bg-gray-50 border-b border-gray-100">
-            {['#', 'Task', 'Assignee', 'Priority', 'Status', 'Due', 'Score'].map(h => (
+          <div className="grid grid-cols-[40px_2fr_1fr_1fr_1fr_1fr] px-6 py-3 bg-gray-50 border-b border-gray-100">
+            {['#', 'Task', 'Assignee', 'Priority', 'Status', 'Due'].map(h => (
               <span key={h} className="text-xs font-bold uppercase tracking-wide text-gray-400">{h}</span>
             ))}
           </div>
 
           {rankedTasks.map((t, i) => {
             const u = users.find(u => u.id === t.assigneeId)
-            const score = t.state === 'done' ? 5 : t.state === 'in_progress' ? 3 : t.state === 'cancelled' ? 0 : 2
             return (
               <div
                 key={t.id}
-                className="grid grid-cols-[40px_2fr_1fr_1fr_1fr_1fr_1fr] px-6 py-3.5 border-b border-gray-50 last:border-b-0 items-center hover:bg-gray-50 transition-colors"
+                className="grid grid-cols-[40px_2fr_1fr_1fr_1fr_1fr] px-6 py-3.5 border-b border-gray-50 last:border-b-0 items-center hover:bg-gray-50 transition-colors"
               >
-                <span className="text-base">{medals[i] ?? <span className="text-xs text-gray-400 font-medium">{i + 1}</span>}</span>
+                <span className="text-xs text-gray-400 font-medium">{i + 1}</span>
                 <div>
                   <p className="text-sm font-medium text-gray-800 truncate max-w-xs">{t.title}</p>
                   <p className="text-xs text-gray-400">{t.state === 'done' ? 'Completed' : t.state === 'in_progress' ? 'In progress' : 'Not started'}</p>
@@ -363,11 +305,6 @@ export default function StatisticsPage() {
                 <span className="text-xs text-gray-500">
                   {t.dueDate ? new Date(t.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '—'}
                 </span>
-                <div className="flex gap-0.5 text-xs">
-                  {Array.from({ length: 5 }).map((_, j) => (
-                    <span key={j} style={{ opacity: j < score ? 1 : 0.2 }}>⭐</span>
-                  ))}
-                </div>
               </div>
             )
           })}
