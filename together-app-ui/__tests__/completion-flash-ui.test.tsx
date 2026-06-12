@@ -1,7 +1,11 @@
-// Step 5 — UI layer: when TasksContext.lastCompletion.taskId matches a task,
-// both the task-row chip and the task-detail chip get the warm amber ring
-// (ring-amber-400). The motion-safe: prefix on transitions means reduced-motion
-// gets a static ring and standard motion gets a crossfade.
+// Completion flash: when a task moves not-done → done while the partner is
+// online, the task row gets a warm wash (row-flash-active) and the chip gets
+// a scale pulse (chip-scale-flash). Both are CSS-animation classes — the
+// global prefers-reduced-motion block suppresses the animations for motion-
+// sensitive users while keeping the color/opacity crossfade.
+//
+// The hard amber ring (ring-amber-400) is intentionally gone: it read as a
+// focus/selection affordance, not the warm relational beat the design calls for.
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import TasksPage from '@/app/(app)/tasks/page'
@@ -53,57 +57,71 @@ vi.mock('@/context/TasksContext', () => ({
   },
 }))
 
-// ── Task row chip ──────────────────────────────────────────────────────
-describe('Task row — completion flash chip (Step 5)', () => {
-  it('row chip wrapper carries ring-amber-400 when lastCompletion.taskId matches the task', () => {
+// ── Task row ──────────────────────────────────────────────────────────
+describe('Task row — completion flash (warm wash + chip scale)', () => {
+  it('row carries row-flash-active when lastCompletion.taskId matches', () => {
     mockLastCompletion = { taskId: 't1', completedAt: Date.now() }
     render(<TasksPage />)
-    const wrapper = screen.getByTestId('row-chip-t1')
-    expect(wrapper.className).toContain('ring-amber-400')
+    const row = screen.getByTestId('task-row-t1')
+    expect(row.className).toContain('row-flash-active')
   })
 
-  it('row chip wrapper has no amber ring when lastCompletion is null', () => {
+  it('row has no row-flash-active when lastCompletion is null', () => {
     mockLastCompletion = null
     render(<TasksPage />)
-    const wrapper = screen.getByTestId('row-chip-t1')
-    expect(wrapper.className).not.toContain('ring-amber-400')
+    const row = screen.getByTestId('task-row-t1')
+    expect(row.className).not.toContain('row-flash-active')
   })
 
-  it('row chip wrapper has no amber ring when lastCompletion.taskId is a different task', () => {
-    mockLastCompletion = { taskId: 'other-task', completedAt: Date.now() }
+  it('row has no row-flash-active when a different task completed', () => {
+    mockLastCompletion = { taskId: 'other', completedAt: Date.now() }
     render(<TasksPage />)
-    const wrapper = screen.getByTestId('row-chip-t1')
-    expect(wrapper.className).not.toContain('ring-amber-400')
+    const row = screen.getByTestId('task-row-t1')
+    expect(row.className).not.toContain('row-flash-active')
   })
 
-  it('row chip wrapper always carries motion-safe transition for smooth crossfade', () => {
+  it('chip carries chip-scale-flash when lastCompletion.taskId matches', () => {
+    mockLastCompletion = { taskId: 't1', completedAt: Date.now() }
+    render(<TasksPage />)
+    const chip = screen.getByTestId('row-chip-t1')
+    expect(chip.className).toContain('chip-scale-flash')
+  })
+
+  it('chip has no chip-scale-flash when lastCompletion is null', () => {
     mockLastCompletion = null
     render(<TasksPage />)
-    const wrapper = screen.getByTestId('row-chip-t1')
-    expect(wrapper.className).toContain('motion-safe:transition-all')
+    const chip = screen.getByTestId('row-chip-t1')
+    expect(chip.className).not.toContain('chip-scale-flash')
+  })
+
+  it('chip no longer carries the hard amber ring', () => {
+    mockLastCompletion = { taskId: 't1', completedAt: Date.now() }
+    render(<TasksPage />)
+    const chip = screen.getByTestId('row-chip-t1')
+    expect(chip.className).not.toContain('ring-amber-400')
   })
 })
 
 // ── Task detail chip ───────────────────────────────────────────────────
-describe('Task detail — completion flash chip (Step 5)', () => {
-  it('detail chip wrapper carries ring-amber-400 when lastCompletion.taskId matches', () => {
+describe('Task detail — completion flash chip', () => {
+  it('detail chip carries chip-scale-flash when lastCompletion.taskId matches', () => {
     mockLastCompletion = { taskId: 't1', completedAt: Date.now() }
     render(<TaskDetailContent id="t1" />)
     const wrapper = screen.getByTestId('detail-chip')
-    expect(wrapper.className).toContain('ring-amber-400')
+    expect(wrapper.className).toContain('chip-scale-flash')
   })
 
-  it('detail chip wrapper has no amber ring when lastCompletion is null', () => {
+  it('detail chip has no chip-scale-flash when lastCompletion is null', () => {
     mockLastCompletion = null
+    render(<TaskDetailContent id="t1" />)
+    const wrapper = screen.getByTestId('detail-chip')
+    expect(wrapper.className).not.toContain('chip-scale-flash')
+  })
+
+  it('detail chip no longer carries the hard amber ring', () => {
+    mockLastCompletion = { taskId: 't1', completedAt: Date.now() }
     render(<TaskDetailContent id="t1" />)
     const wrapper = screen.getByTestId('detail-chip')
     expect(wrapper.className).not.toContain('ring-amber-400')
-  })
-
-  it('detail chip wrapper always carries motion-safe transition for smooth crossfade', () => {
-    mockLastCompletion = null
-    render(<TaskDetailContent id="t1" />)
-    const wrapper = screen.getByTestId('detail-chip')
-    expect(wrapper.className).toContain('motion-safe:transition-all')
   })
 })

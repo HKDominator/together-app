@@ -91,7 +91,7 @@ export function TaskDetailContent({ id }: { id: string }) {
           <div className="flex items-center gap-3 mb-5 flex-wrap">
             <PriorityBadge priority={task.priority} />
             <span
-              className={`rounded-full motion-safe:transition-all motion-safe:duration-300 ${lastCompletion?.taskId === task.id ? 'ring-2 ring-amber-400' : ''}`}
+              className={`rounded-full motion-safe:transition-[transform] ${lastCompletion?.taskId === task.id ? 'chip-scale-flash' : ''}`}
               data-testid="detail-chip"
             >
               <StateChip state={task.state} />

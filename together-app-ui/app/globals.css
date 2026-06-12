@@ -94,6 +94,27 @@
   animation: pulseStateIn 260ms ease-out forwards;
 }
 
+/* ── Completion flash: warm row wash (180ms in / 450ms out) ─────────── */
+/* Partner-online-only moment. Bloom arrives fast; warmth lingers. */
+@keyframes rowFlash {
+  0%   { background-color: transparent; }
+  20%  { background-color: rgba(192, 57, 43, 0.07); }
+  100% { background-color: transparent; }
+}
+.row-flash-active {
+  animation: rowFlash 600ms ease-out forwards;
+}
+
+/* ── Completion flash: chip scale pulse (350ms strong ease-out) ─────── */
+@keyframes chipScaleFlash {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+.chip-scale-flash {
+  animation: chipScaleFlash 350ms cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
 /* ── Dual-presence dot pulse (DESIGN.md §5) ──────────────────────── */
 /* Used in Wave 4 when dual-presence ships. Signal is also carried by
    color (green vs gray), so dropping the animation under reduced-motion

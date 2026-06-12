@@ -286,13 +286,15 @@ export default function TasksPage() {
                     key={t.id}
                     role="row"
                     tabIndex={0}
+                    data-testid={`task-row-${t.id}`}
                     onClick={() => handleRowClick(t.id)}
                     onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && handleRowClick(t.id)}
                     className={`grid grid-cols-[2fr_1fr_100px_110px_100px_80px] px-6 py-3.5 border-b border-gray-50
                       items-center cursor-pointer motion-safe:transition-colors hover:bg-cm-pale last:border-b-0
                       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cr focus-visible:ring-inset
                       ${isOverdue ? 'bg-red-50/30' : ''}
-                      ${isOptimistic ? 'opacity-60' : ''}`}
+                      ${isOptimistic ? 'opacity-60' : ''}
+                      ${lastCompletion?.taskId === t.id ? 'row-flash-active' : ''}`}
                   >
                     <div className="relative">
                       {isPrefetchRow && <div ref={prefetchRef} className="absolute inset-0 pointer-events-none" />}
@@ -335,7 +337,7 @@ export default function TasksPage() {
                       {t.dueDate ? new Date(t.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '—'}
                     </span>
                     <span
-                      className={`rounded-full motion-safe:transition-all motion-safe:duration-300 ${lastCompletion?.taskId === t.id ? 'ring-2 ring-amber-400' : ''}`}
+                      className={`rounded-full motion-safe:transition-[transform] ${lastCompletion?.taskId === t.id ? 'chip-scale-flash' : ''}`}
                       data-testid={`row-chip-${t.id}`}
                     >
                       <StateChip state={t.state} />
