@@ -33,39 +33,45 @@ describe('LoginPage — step progress indicator (FD-07)', () => {
 
   it('marks step 1 as current on initial render', () => {
     render(<LoginPage />)
-    const step1 = screen.getByLabelText(/step 1 of 3/i)
+    const nav = screen.getByRole('navigation', { name: /sign.?in steps/i })
+    const [step1] = Array.from(nav.querySelectorAll('li'))
     expect(step1).toHaveAttribute('aria-current', 'step')
   })
 
   it('marks steps 2 and 3 as not current on initial render', () => {
     render(<LoginPage />)
-    expect(screen.getByLabelText(/step 2 of 3/i)).not.toHaveAttribute('aria-current', 'step')
-    expect(screen.getByLabelText(/step 3 of 3/i)).not.toHaveAttribute('aria-current', 'step')
+    const nav = screen.getByRole('navigation', { name: /sign.?in steps/i })
+    const [, step2, step3] = Array.from(nav.querySelectorAll('li'))
+    expect(step2).not.toHaveAttribute('aria-current', 'step')
+    expect(step3).not.toHaveAttribute('aria-current', 'step')
   })
 
   it('advances to step 2 after password is submitted', async () => {
     render(<LoginPage />)
     fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: 'a@b.com' } })
-    fireEvent.change(screen.getByLabelText(/^password$/i),    { target: { value: 'pass1234' } })
+    fireEvent.change(screen.getByLabelText(/email address/i).closest('form')!.querySelector('input[type="password"]')!, { target: { value: 'pass1234' } })
     fireEvent.click(screen.getByRole('button', { name: /continue/i }))
-    await waitFor(() =>
-      expect(screen.getByLabelText(/step 2 of 3/i)).toHaveAttribute('aria-current', 'step')
-    )
-    expect(screen.getByLabelText(/step 1 of 3/i)).not.toHaveAttribute('aria-current', 'step')
+    await waitFor(() => {
+      const nav = screen.getByRole('navigation', { name: /sign.?in steps/i })
+      const [, step2] = Array.from(nav.querySelectorAll('li'))
+      expect(step2).toHaveAttribute('aria-current', 'step')
+    })
   })
 
   it('advances to step 3 after OTP is submitted', async () => {
     render(<LoginPage />)
     // Step 1 → 2
     fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: 'a@b.com' } })
-    fireEvent.change(screen.getByLabelText(/^password$/i),    { target: { value: 'pass1234' } })
+    fireEvent.change(screen.getByLabelText(/email address/i).closest('form')!.querySelector('input[type="password"]')!, { target: { value: 'pass1234' } })
     fireEvent.click(screen.getByRole('button', { name: /continue/i }))
     await waitFor(() => screen.getByLabelText(/verification code/i))
     // Step 2 → 3
     fireEvent.change(screen.getByLabelText(/verification code/i), { target: { value: '123456' } })
     fireEvent.click(screen.getByRole('button', { name: /verify/i }))
-    await waitFor(() =>
-      expect(screen.getByLabelText(/step 3 of 3/i)).toHaveAttribute('aria-current', 'step')
-    )
+    await waitFor(() => {
+      const nav = screen.getByRole('navigation', { name: /sign.?in steps/i })
+      const [,, step3] = Array.from(nav.querySelectorAll('li'))
+      expect(step3).toHaveAttribute('aria-current', 'step')
+    })
   })
 })
