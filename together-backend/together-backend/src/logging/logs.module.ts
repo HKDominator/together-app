@@ -15,8 +15,9 @@ import { Observation } from './entities/observation.entity'
 import { User } from '../users/entities/user.entity'
 import { AuthModule } from '../auth/auth.module'
 
-// Gold AI bits
-import { OllamaClient } from './ai/ollama.client'
+// Gold AI bits — OllamaClient now lives in the shared AiModule (Wave 5,
+// ADR-0004): the Pulse module injects the same client.
+import { AiModule } from '../ai/ai.module'
 import { FeatureExtractorService } from './ai/feature-extractor.service'
 import { AiAnomalyService } from './ai/ai-anomaly.service'
 
@@ -24,6 +25,7 @@ import { AiAnomalyService } from './ai/ai-anomaly.service'
   imports: [
     TypeOrmModule.forFeature([ActionLog, Observation, User]),
     AuthModule,
+    AiModule,
   ],
   controllers: [LogsController],
   providers: [
@@ -32,7 +34,6 @@ import { AiAnomalyService } from './ai/ai-anomaly.service'
     LoggingInterceptor,   // registered as a plain provider so DI can inject it
 
     // AI pipeline
-    OllamaClient,
     FeatureExtractorService,
     AiAnomalyService,
   ],
