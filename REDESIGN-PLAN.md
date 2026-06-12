@@ -587,22 +587,31 @@ Order is dependency-driven: tokens unblock the visual sweep, the identity wire u
 - Frontend error handling/UX ✓: **CR-02** device labels, **CR-03/CR-09/CR-13** surfaced errors, **CR-04** PIN back button, **CR-08** styled confirm, **CR-10** poll control, **BUG-29, BUG-30, BUG-31, BUG-34, BUG-36**.
 - Offline/realtime ✓: **BUG-20** (tempId remap on drain), **BUG-21** (drain validation error surfaced), **BUG-22** (mid-drain refetch scope), **BUG-23** (per-op localStorage keys), **BUG-24** (own-mutation dedup), **BUG-25** (REPLACE_ID idempotent), **BUG-26** (reconnect resync), **BUG-27** (polling fallback), **BUG-28** (ChatPanel disconnected guard), **BUG-33** (realtime comments — backend emits + frontend subscribes), **BUG-35** (debounced server-side search).
 
-**Wave 4 — signature feature build (identity).** Depends on Wave 1 identity wire + SEC-04 (authed WS, done).
+**Wave 4 — signature feature build (identity) ✓ DONE (2026-06-12).** All 8 steps committed on `refactor/together_app_v2_1`. Test suite: **171 FE vitest / 111 BE jest green.**
 
-*FD-06 dual-presence — Steps 1–4 ✓ DONE (2026-06-11), 141 FE / 111 BE green:*
 - **Step 1 ✓** (`e9357a9`) — `withCredentials: true` on both sockets, `attachAuthReconnect` on tasks socket (token refresh → reconnect loop).
 - **Step 2 ✓** (`ed576c4`) — Backend `PresenceService` + `TasksGateway` hooks: `presence:state` snapshot on join, online/offline/viewing events, 5 s offline grace (`PRESENCE_OFFLINE_GRACE_MS`).
 - **Step 3 ✓** (`e5a9810`) — `PresenceContext`: rides tasks socket (ADR-0002), seeds from `presence:state` on every connect/reconnect, patches with deltas, re-emits own viewing focus on reconnect. `Sidebar.tsx`: self always online, partner dot = `onlineUserIds.has(id)`, `motion-safe:animate-pulse` (reduced-motion solid color). `app/(app)/layout.tsx`: `<PresenceProvider>` wraps app shell.
 - **Step 4 ✓** (`20db610`) — Viewing presence UI: `TaskDetailContent` extracted for testability; detail page + edit modal emit `setViewingTask` on mount/unmount (BUG-25 `tmp_*` guard); co-presence line on detail; partner initials bubble on task row; `usePresence` returns safe empty default outside provider.
+- **Step 5 ✓** (`0460469`) — FD-06 completion moment: `TasksContext` `lastCompletion` state; warm amber flash (`ring-2 ring-amber-400`) on row chip + detail chip when server-echoed `task:updated` transitions not-done→done with partner online; `motion-safe:` prefix on both chips; `useRef` mirrors for stale-closure avoidance in WS handler.
+- **Step 6 ✓** (`d283a80`) — **FD-05** identity sweep: "You" vs partner name in task rows, task detail "Assigned to", activity section, and comments author header; `CommentsThread` shows "You" for own comments.
+- **Step 7 ✓** (`2b2ec95`) — **FD-03 + FD-04** statistics rebuild: Contribution Ranking leaderboard deleted; `BarChart` with hardcoded "Ana"/"Dan" legend replaced by "Moved Together" shared weekly chart + two summary lines (CR-01 fabricated KPIs + CR-07 legend names eliminated); tabular view Score column removed.
+- **Step 8 ✓** (`a7e630c`) — **FD-01 + FD-02** account entry: sidebar footer (current-user avatar + name + ⚙ `/account` link + ⏻ sign-out); `/account/page.tsx` index with Sessions link + Profile/Security placeholders; kills the 404 and the unreachable-surface IA gap.
 
-*Remaining FD-06 steps:*
-- **Step 5** — Completion moment: `TasksContext` `lastCompletion` tracking; warm flash on state chip (row + detail) when server-echoed `task:updated` transitions not-done→done with partner online; `prefers-reduced-motion` crossfade on both chips.
-- **Step 6** — **FD-05** mine/theirs framing sweep: "You" vs partner name in task rows/detail/comments; no list segregation.
-- **Step 7** — **FD-03 + FD-04** statistics rebuild (leaderboard removal + "moved together" chart; **CR-01** fabricated KPIs + **CR-07** hardcoded legend names die here).
-- **Step 8** — **FD-01 + FD-02** account entry point + index page.
+*Unplanned fix committed alongside Wave 4 (2026-06-12):* `auth.service.ts` `beginLogin`/`verifyOtp`/`verifyPin` were calling plain `findOne()` on the `User` repo — both `passwordHash` and `securityPinHash` carry `select:false` on the entity, so TypeORM silently omitted them, causing `bcrypt.compare(pw, undefined)` → "data and hash arguments required" crash on every login. Fixed via private `findUserForAuth()` helper using `createQueryBuilder + addSelect`. `auth.service.spec.ts` updated to mock `createQueryBuilder`; 111 BE jest green.
 
-**Wave 5 — surface feature build.**
-- **FD-16** Couple Pulse (replaces the placeholder; kills **CR-05** jargon copy).
+**Wave 5 — surface feature build. FD-16 Couple Pulse: COMPLETE 2026-06-12.**
+- **FD-16 ✓ COMPLETE** Couple Pulse (replaces the placeholder; kills **CR-05** jargon copy). All 10 steps committed on `refactor/together_app_v2_1`; **196 FE vitest / 192 BE jest green.** Architecture brief approved 2026-06-12 (all 8 open decisions resolved); spec ground truth: [ADR-0004](docs/adr/0004-couple-pulse.md), `.scratch/couple-pulse/PRD.md`, CONTEXT.md glossary.
+  - **Step 1 ✓** (`daa33fc`) — OllamaClient extracted from `logging/ai/` to shared `src/ai/ai.module.ts`; LogsModule imports AiModule.
+  - **Step 2 ✓** (`2e133c8` red, `c226f2f` green) — `src/pulse/reading.ts`: frozen mood (`bright/steady/tender/heavy`) × energy (`charged/steady/low`) vocab; six Readings; pure symmetric first-match rule table, exhaustively tested over all 144 ordered pairs. Carrying/quiet boundary: both moods ∈ {tender, heavy} AND ≥1 heavy.
+  - **Step 3 ✓** (`91ef2f6` red, `7604036` green) — `src/pulse/canon.ts`: 48 product-owner-approved entries (8/Reading; draft + approval in `.scratch/couple-pulse/canon-draft.md`); `pickCanonEntry()` deterministic over (Pulse Day, Reading).
+  - **Step 4 ✓** (`38f89f1` red, `637a743` green) — `pulse_check_ins` (unique userId+pulseDay) + `pulse_days` entities via `synchronize`; `PulseService`: PULSE_TIMEZONE Pulse Day (DST-tested), today-only upsert w/ unique-race recovery, four-state view, Reveal-after-you-share enforced in the service layer, provenance never serialized.
+  - **Step 5 ✓** (`ea42483` red, `b971837` green) — `PulseSuggestionService`: completing check-in awaits bounded generation (8s; fast-fail ≤2s when Ollama down), anomaly-style JSON-only prompt, defensive validation (candidate-traced, ≤200 chars, no digits), all nine degradation rows → deterministic Canon pick via `INSERT … ON CONFLICT DO NOTHING` + read-back; Canon-only lazy repair on reads.
+  - **Step 6 ✓** (`89800e2` red, `2a73e7e` green) — `PulseController` + `UpsertCheckInDto`: `GET /pulse/today`, `PUT /pulse/today/check-in`, `@UseGuards(AuthGuard)` at class level (matches StatsController; no PermissionsGuard), `@IsIn(MOODS)` / `@IsIn(ENERGIES)` validation. 188 BE jest green.
+  - **Step 7 ✓** (`f7a2e71`) — `stats.firewall.spec.ts`: ADR-0004 CI tripwire; source-text assertions that StatsModule/StatsService carry no pulse import and TasksStats has no pulse-derived fields. Spec-only commit; boundary was already clean.
+  - **Step 8 ✓** (`3d795d0` red, `938b6ee` green) — `lib/pulse.ts`: `PulseTodayView` type, `pulseApi.getToday()` / `upsertCheckIn()` with 401-retry via `refreshOnce`, `derivePulseView()` pure function (empty / partner-first / solo / complete). 180 FE vitest green.
+  - **Step 9 ✓** (`da14f13` red, `a6fdf27` green) — `app/(app)/pulse/page.tsx`: four-state Couple Pulse UI. (a) check-in form; (b) form + partner-fact, content strictly hidden; (c) editable form + "Just you so far today."; (d) Reading leads, suggestion beneath. Brand tokens, `motion-safe:` on every transition, no "Score", no numerals. 196 FE vitest green.
+  - **Step 10 ✓** — Copy pass: no em dashes in any user-facing Pulse copy (all clear). REDESIGN-PLAN.md and wave5-status.md updated. FD-16 / CR-05 100% done. Playwright e2e deliberately skipped (runner-mismatch, approved 2026-06-12).
 - Auth surface: **FD-07, FD-08, FD-09, FD-10, FD-11**.
 - **FD-12** chat/workspace rename, **FD-15** logs tooling, **FD-17** account IA.
 - Responsive/touch: **AUD-10** 44px targets + touch-visible controls, **AUD-12** responsive ChatPanel.
@@ -628,5 +637,7 @@ The "Approved decisions" table above was approved as proposed on 2026-06-10 (zer
 - **Security track** runs independently on `hotfix/security-phase1` (SEC-01–07 fixed; two pre-existing test failures are unrelated; SEC-07 has a seed residual to finish).
 - **Phase 2** (this section) is complete: all decisions locked or approved (veto pass 2026-06-10, zero vetoes). Next action: build starts at **Wave 1** — `globals.css` tokens, the identity wire, and BUG-32 are the first three changes.
 - Wave 1's identity wire is the single highest-leverage code change outside security: five findings collapse into one fix and it unblocks the signature features.
-- **Phase 3 progress (2026-06-11):** Waves 1–3 complete on `refactor/together_app_v2_1`; test suite green (107 FE / 97 BE).
-- **Phase 4 progress (2026-06-11):** Wave 4 Steps 1–4 complete on `refactor/together_app_v2_1`; test suite green (141 FE vitest / 111 BE jest). Steps 5–8 pending (see Wave 4 section above).
+- **Phase 3 complete (2026-06-11):** Waves 1–3 fully committed on `refactor/together_app_v2_1`; test suite green (107 FE / 97 BE).
+- **Phase 4 complete (2026-06-12):** Wave 4 all 8 steps committed on `refactor/together_app_v2_1`; **171 FE vitest / 111 BE jest green. Wave 4 is 100% done. Next: Wave 5.**
+- **Unplanned BE fix (2026-06-12):** `bcrypt.compare(pw, undefined)` crash on login fixed in `auth.service.ts` — `passwordHash`/`securityPinHash` are `select:false`; `findUserForAuth` private helper now uses `createQueryBuilder + addSelect`. Changes are uncommitted as of handoff; commit them before starting Wave 5 code.
+- **Wave 5 FD-16 complete (2026-06-12):** Couple Pulse all 10 steps committed on `refactor/together_app_v2_1`; **196 FE vitest / 192 BE jest green. FD-16 / CR-05 100% done.** Remaining Wave 5 items: auth surface (FD-07/08/09/10/11), chat rename (FD-12), logs tooling (FD-15), account IA (FD-17), responsive/touch (AUD-10/AUD-12).
