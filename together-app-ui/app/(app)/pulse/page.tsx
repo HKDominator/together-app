@@ -249,33 +249,34 @@ export default function PulsePage() {
         </section>
       )}
 
-      {/* ── State d: complete — Reading leads, suggestion beneath ── */}
+      {/* ── State d: complete — Reading is the centerpiece ── */}
       {state === 'complete' && (
         <section aria-label="Reading" className="pulse-reading-in">
           {view.reading ? (
-            <>
-              <p className="text-xs font-semibold text-sl-muted uppercase tracking-wider mb-3">
-                Today&apos;s reading
-              </p>
-              <p className="text-2xl font-semibold text-sl mb-3">
+            <div data-testid="reading-card" className="bg-cm-pale rounded-2xl p-8">
+              <p className="text-4xl font-bold text-sl leading-tight mb-6">
                 {view.reading.label}
               </p>
               {view.suggestion && (
-                <p className="text-sm text-sl-muted pulse-reading-suggestion">{view.suggestion}</p>
+                <div data-testid="suggestion-card" className="border-t border-cm pt-5">
+                  <p className="text-sm text-sl pulse-reading-suggestion">
+                    {view.suggestion}
+                  </p>
+                </div>
               )}
-            </>
+            </div>
           ) : (
             /* Ollama-down fallback: both checked in but reading hasn't come through yet */
-            <div className="py-4">
+            <div className="p-6 bg-cm-pale rounded-2xl" role="status">
               <p className="text-sm text-sl-muted mb-1">
-                You&apos;re both checked in. The reading is still coming together.
+                You&apos;re both checked in. Your reading is still coming together.
               </p>
               <p className="text-xs text-sl-dim mb-4">
-                This usually takes a moment — check back shortly.
+                This can take a moment — check back shortly.
               </p>
               <button
                 onClick={load}
-                className="text-sm font-semibold text-cr hover:underline"
+                className="text-sm font-semibold text-cr hover:underline min-h-[44px]"
               >
                 Try again →
               </button>

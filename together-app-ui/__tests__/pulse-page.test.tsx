@@ -224,6 +224,18 @@ describe('PulsePage — state (d) complete: Reading + suggestion', () => {
     expect(section.className).toContain('pulse-reading-in')
   })
 
+  it('reading text is inside a warm reading-card container', async () => {
+    render(<PulsePage />)
+    await screen.findByText('In step')
+    expect(screen.getByTestId('reading-card')).toBeInTheDocument()
+  })
+
+  it('suggestion is in its own suggestion-card container', async () => {
+    render(<PulsePage />)
+    await screen.findByText('Tea on the balcony, phones inside')
+    expect(screen.getByTestId('suggestion-card')).toBeInTheDocument()
+  })
+
   it('suggestion carries stagger delay class pulse-reading-suggestion', async () => {
     render(<PulsePage />)
     const suggestion = await screen.findByText('Tea on the balcony, phones inside')
