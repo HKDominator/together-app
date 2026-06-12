@@ -163,16 +163,26 @@ export default function PulsePage() {
 
           {/* (b) Partner has checked in; their content stays hidden */}
           {state === 'partner-first' && (
-            <p key="partner-first" className="text-sm text-sl-muted mb-6 pulse-state-in">
-              {view.partner.name} is already in.
-            </p>
+            <div key="partner-first" className="mb-6 pulse-state-in">
+              <p className="text-sm text-sl-muted">
+                {view.partner.name} is already in.
+              </p>
+              <p className="text-xs text-sl-dim mt-1">
+                Check in to see today&apos;s reading together.
+              </p>
+            </div>
           )}
 
           {/* (c) You checked in; partner hasn't yet */}
           {state === 'solo' && (
-            <p key="solo" className="text-sm text-sl-muted mb-6 pulse-state-in">
-              Just you so far today.
-            </p>
+            <div key="solo" className="mb-6 pulse-state-in">
+              <p className="text-sm text-sl-muted">
+                Just you so far today.
+              </p>
+              <p className="text-xs text-sl-dim mt-1">
+                The reading appears once {view.partner.name} checks in.
+              </p>
+            </div>
           )}
 
           {/* Mood */}

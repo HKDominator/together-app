@@ -107,6 +107,11 @@ describe('PulsePage — state (b) partner-first: form + partner fact, content hi
     await screen.findByRole('radio', { name: /bright/i })
   })
 
+  it('shows guidance that checking in will reveal the reading together', async () => {
+    render(<PulsePage />)
+    await screen.findByText(/check in.*reading/i)
+  })
+
   it('does not leak the partner check-in content (reveal-after-share: no peek)', async () => {
     render(<PulsePage />)
     await screen.findByText(/Dan is already in/i)
@@ -131,6 +136,11 @@ describe('PulsePage — state (c) solo: editable check-in + "Just you" copy', ()
   it('shows the editable check-in form (no Reading slot, nothing grayed)', async () => {
     render(<PulsePage />)
     await screen.findByRole('radio', { name: /bright/i })
+  })
+
+  it('shows guidance that the reading appears once the partner checks in', async () => {
+    render(<PulsePage />)
+    await screen.findByText(/reading.*Dan checks in|Dan checks in.*reading/i)
   })
 
   it('pre-selects your existing check-in values in the form', async () => {
