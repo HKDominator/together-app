@@ -104,12 +104,12 @@ export default function ChatPanel() {
             </button>
           </div>
 
-          <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3 bg-gray-50">
+          <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3 bg-bg">
             {historyError && (
-              <p role="alert" className="text-center text-xs text-red-500 mt-8">{historyError}</p>
+              <p role="alert" className="text-center text-xs text-danger mt-8">{historyError}</p>
             )}
             {!historyError && messages.length === 0 && (
-              <p className="text-center text-xs text-gray-400 mt-8">No messages yet — say hi 👋</p>
+              <p className="text-center text-xs text-sl-muted mt-8">No messages yet — say hi 👋</p>
             )}
             {messages.map(m => {
               const mine = m.senderId === user.id
@@ -122,11 +122,11 @@ export default function ChatPanel() {
                     </div>
                   )}
                   <div className={`max-w-[70%] px-3 py-2 rounded-2xl text-sm ${
-                    mine ? 'bg-cm text-sl rounded-br-sm' : 'bg-white border border-gray-100 rounded-bl-sm text-gray-800'
+                    mine ? 'bg-cm text-sl rounded-br-sm' : 'bg-white border border-gray-100 rounded-bl-sm text-sl'
                   }`}>
                     {!mine && <div className="text-xs font-semibold mb-0.5" style={{ color: m.senderColor }}>{m.senderName}</div>}
                     <div className="whitespace-pre-wrap break-words">{m.body}</div>
-                    <div className={`text-xs mt-1 ${mine ? 'text-sl/60' : 'text-gray-400'}`}>
+                    <div className={`text-xs mt-1 ${mine ? 'text-sl/60' : 'text-sl-muted'}`}>
                       {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </div>
                   </div>
@@ -134,13 +134,13 @@ export default function ChatPanel() {
               )
             })}
             {typing && (
-              <div className="text-xs text-gray-400 italic pl-2">{typing} is typing…</div>
+              <div className="text-xs text-sl-muted italic pl-2">{typing} is typing…</div>
             )}
           </div>
 
           <div className="border-t bg-white p-3 flex flex-col gap-1.5">
             {sendError && (
-              <p role="alert" className="text-xs text-red-500">{sendError}</p>
+              <p role="alert" className="text-xs text-danger">{sendError}</p>
             )}
             <div className="flex gap-2">
               <input
@@ -148,7 +148,7 @@ export default function ChatPanel() {
                 onChange={e => setDraft(e.target.value)}
                 onKeyDown={onKey}
                 placeholder="Type a message…"
-                className="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-200 focus:border-red-400 focus:outline-none"
+                className="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-200 placeholder:text-sl-muted focus:border-cr focus:outline-none"
               />
               <button
                 onClick={send}

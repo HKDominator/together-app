@@ -31,22 +31,22 @@ const dot = (name: string) =>
   screen.getByRole('img', { name: new RegExp(name, 'i') })
 
 describe('Sidebar presence dot (FD-06)', () => {
-  it('partner dot is green when partner is online', () => {
+  it('partner dot uses success token when partner is online', () => {
     mockOnline = new Set(['u2'])
     render(<Sidebar />)
-    expect(dot('bora is online')).toHaveStyle({ background: '#27AE60' })
+    expect(dot('bora is online')).toHaveClass('bg-success')
   })
 
-  it('partner dot is gray when partner is offline', () => {
+  it('partner dot uses gray-500 token when partner is offline', () => {
     mockOnline = new Set()
     render(<Sidebar />)
-    expect(dot('bora is offline')).toHaveStyle({ background: '#6B7280' })
+    expect(dot('bora is offline')).toHaveClass('bg-gray-500')
   })
 
   it('self dot is always green regardless of presence state', () => {
     mockOnline = new Set()   // self NOT in onlineUserIds — dot still green
     render(<Sidebar />)
-    expect(dot('ana is online')).toHaveStyle({ background: '#27AE60' })
+    expect(dot('ana is online')).toHaveClass('bg-success')
   })
 
   it('online dot has motion-safe:animate-pulse class; offline dot does not', () => {

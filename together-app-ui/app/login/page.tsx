@@ -32,13 +32,13 @@ function StepProgress({ current }: { current: Step }) {
                 'w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold',
                 'motion-safe:transition-colors motion-safe:duration-200',
                 isCurrent ? 'bg-cr text-white' :
-                isDone    ? 'bg-green-500 text-white' :
-                            'bg-gray-100 text-gray-400',
+                isDone    ? 'bg-success text-white' :
+                            'bg-bg text-sl-muted',
               ].join(' ')}>
                 {isDone ? '✓' : i + 1}
               </div>
               <span className={`ml-1.5 text-xs font-medium hidden sm:inline ${
-                isCurrent ? 'text-sl' : 'text-gray-400'
+                isCurrent ? 'text-sl' : 'text-sl-muted'
               }`}>
                 {s.label}
               </span>
@@ -46,7 +46,7 @@ function StepProgress({ current }: { current: Step }) {
                 <div className={[
                   'mx-3 h-0.5 w-8 rounded',
                   'motion-safe:transition-colors motion-safe:duration-200',
-                  isDone ? 'bg-cr' : 'bg-gray-200',
+                  isDone ? 'bg-success' : 'bg-gray-200',
                 ].join(' ')} />
               )}
             </li>
