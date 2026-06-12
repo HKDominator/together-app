@@ -155,19 +155,26 @@ export default function PulsePage() {
 
   return (
     <div className="p-9 max-w-lg">
-      <h1 className="font-display text-3xl font-bold text-sl mb-8">Today</h1>
+      <h1 className="font-display text-3xl font-bold text-sl mb-2">Today</h1>
 
       {/* ── States a / b / c: show check-in form ── */}
       {state !== 'complete' && (
         <section aria-label="Check in">
 
+          {/* (a) Empty — quiet orientation before the form */}
+          {state === 'empty' && (
+            <p className="text-sm text-sl-muted mb-8">
+              A moment to check in on how you&apos;re both feeling.
+            </p>
+          )}
+
           {/* (b) Partner has checked in; their content stays hidden */}
           {state === 'partner-first' && (
-            <div key="partner-first" className="mb-6 pulse-state-in">
-              <p className="text-sm text-sl-muted">
+            <div key="partner-first" className="mb-8 p-4 bg-cm-pale rounded-xl pulse-state-in">
+              <p className="text-sm font-semibold text-sl">
                 {view.partner.name} is already in.
               </p>
-              <p className="text-xs text-sl-dim mt-1">
+              <p className="text-xs text-sl-muted mt-1">
                 Check in to see today&apos;s reading together.
               </p>
             </div>
@@ -175,23 +182,23 @@ export default function PulsePage() {
 
           {/* (c) You checked in; partner hasn't yet */}
           {state === 'solo' && (
-            <div key="solo" className="mb-6 pulse-state-in">
-              <p className="text-sm text-sl-muted">
+            <div key="solo" className="mb-8 p-4 bg-cm-pale rounded-xl pulse-state-in">
+              <p className="text-sm font-semibold text-sl">
                 Just you so far today.
               </p>
-              <p className="text-xs text-sl-dim mt-1">
+              <p className="text-xs text-sl-muted mt-1">
                 The reading appears once {view.partner.name} checks in.
               </p>
             </div>
           )}
 
           {/* Mood */}
-          <fieldset className="mb-6">
+          <fieldset className="mb-7">
             <legend className="text-xs font-semibold text-sl uppercase tracking-wider mb-1">
               Mood
             </legend>
             <p className="text-xs text-sl-muted mb-3">How are you feeling emotionally?</p>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2.5">
               {MOODS.map(({ value, label }) => (
                 <ChoiceButton<Mood>
                   key={value}
@@ -206,12 +213,12 @@ export default function PulsePage() {
           </fieldset>
 
           {/* Energy */}
-          <fieldset className="mb-8">
+          <fieldset className="mb-9">
             <legend className="text-xs font-semibold text-sl uppercase tracking-wider mb-1">
               Energy
             </legend>
             <p className="text-xs text-sl-muted mb-3">What's your energy level?</p>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2.5">
               {ENERGIES.map(({ value, label }) => (
                 <ChoiceButton<Energy>
                   key={value}
@@ -235,9 +242,11 @@ export default function PulsePage() {
             onClick={handleCheckIn}
             disabled={!mood || !energy || saving}
             className={[
-              'bg-cr text-white px-5 py-2.5 rounded-lg text-sm font-semibold',
-              'disabled:opacity-50',
-              'motion-safe:transition-opacity motion-safe:duration-150',
+              'bg-cr text-white px-6 py-3 rounded-lg text-sm font-semibold min-h-[44px]',
+              'disabled:opacity-40',
+              'hover:bg-cr-deep',
+              'motion-safe:transition-all motion-safe:duration-150',
+              'motion-safe:active:scale-[0.97]',
             ].join(' ')}
           >
             {saving
