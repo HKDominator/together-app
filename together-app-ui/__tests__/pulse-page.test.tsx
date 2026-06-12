@@ -97,9 +97,9 @@ describe('PulsePage — state (b) partner-first: form + partner fact, content hi
     vi.mocked(pulseApi.getToday).mockResolvedValue(partnerFirst)
   })
 
-  it('shows "[partner name] has checked in today"', async () => {
+  it('shows "[partner name] is already in"', async () => {
     render(<PulsePage />)
-    await screen.findByText(/Dan has checked in today/i)
+    await screen.findByText(/Dan is already in/i)
   })
 
   it('still shows the check-in form so you can complete your check-in', async () => {
@@ -109,7 +109,7 @@ describe('PulsePage — state (b) partner-first: form + partner fact, content hi
 
   it('does not leak the partner check-in content (reveal-after-share: no peek)', async () => {
     render(<PulsePage />)
-    await screen.findByText(/Dan has checked in today/i)
+    await screen.findByText(/Dan is already in/i)
     // partner.checkIn is null server-side; nothing from it should appear as
     // explicit "partner mood" or "partner energy" copy
     expect(screen.queryByText(/partner.*mood|partner.*energy/i)).toBeNull()
@@ -195,5 +195,29 @@ describe('PulsePage — submit', () => {
 
     const alert = await screen.findByRole('alert')
     expect(alert).toHaveTextContent(/network error/i)
+  })
+})
+
+// ── Load failure recovery ─────────────────────────────────────────
+
+describe('PulsePage — load failure recovery', () => {
+  it('shows an error message and retry button when initial load fails', async () => {
+    vi.mocked(pulseApi.getToday).mockRejectedValue(new Error('Network error'))
+
+    render(<PulsePage />)
+    await screen.findByText(/couldn.?t load/i)
+    expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument()
+  })
+
+  it('recovers when the user retries after a failed load', async () => {
+    vi.mocked(pulseApi.getToday)
+      .mockRejectedValueOnce(new Error('fail'))
+      .mockResolvedValue(emptyView)
+
+    render(<PulsePage />)
+    await screen.findByRole('button', { name: /try again/i })
+    fireEvent.click(screen.getByRole('button', { name: /try again/i }))
+
+    await screen.findByRole('radio', { name: /bright/i })
   })
 })

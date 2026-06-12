@@ -1,21 +1,19 @@
-// Destination: together-app-ui/app/(app)/pulse/page.tsx
-// Wave 5 Step 9 (FD-16 / ADR-0004): Couple Pulse page — replaces the
-// "Coming soon — Gold challenge" placeholder (CR-05 dead).
+// Wave 5 Step 9 (FD-16 / ADR-0004): Couple Pulse page.
 //
 // Four states driven by derivePulseView (pure, server-mirrored):
-//   empty        — (a) check-in form
-//   partner-first — (b) form + "[name] has checked in today" fact
+//   empty        — (a) check-in form only
+//   partner-first — (b) form + "{name} is already in."
 //   solo         — (c) editable form + "Just you so far today."
-//   complete     — (d) Reading leads, suggestion beneath; no form
+//   complete     — (d) Reading label, suggestion; no form
 //
-// ADR-0004 hard rules observed here:
+// ADR-0004 hard rules:
 //   • No numeral anywhere; the word "Score" never appears.
 //   • Divergent Readings styled identically to aligned ones (calm palette).
 //   • No nudge/reminder copy; no re-roll; no history.
 //   • motion-safe: prefix on every transition/animation class.
 //   • No TasksContext dependency.
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { pulseApi, derivePulseView } from '@/lib/pulse'
 import type { PulseTodayView, Mood, Energy } from '@/lib/pulse'
 
@@ -42,7 +40,7 @@ const choiceBase = [
   'motion-safe:transition-colors motion-safe:duration-150',
 ].join(' ')
 
-const choiceActive   = 'bg-cm border-sl text-sl'
+const choiceActive   = 'bg-cm border-sl-muted text-sl'
 const choiceInactive = 'bg-surface border-gray-200 text-sl-muted hover:bg-cm-pale'
 
 function ChoiceButton<T extends string>({
@@ -74,17 +72,24 @@ export default function PulsePage() {
   const [saving,    setSaving]    = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [loading,   setLoading]   = useState(true)
+  // hasEverLoaded distinguishes initial-load failure (show error) from
+  // refetch failure (keep prior state — auth errors dispatched globally).
+  const hasEverLoaded = useRef(false)
 
   const load = useCallback(async () => {
+    setLoading(true)
     try {
       const data = await pulseApi.getToday()
       setView(data)
+      hasEverLoaded.current = true
       if (data.you) {
         setMood(data.you.mood)
         setEnergy(data.you.energy)
       }
     } catch {
-      // auth errors dispatched globally; keep prior state on network blip
+      // On refetch failure, keep prior state (auth errors dispatched globally).
+      // On initial load failure (hasEverLoaded still false), view stays null
+      // and the error state below renders with a retry affordance.
     } finally {
       setLoading(false)
     }
@@ -92,7 +97,7 @@ export default function PulsePage() {
 
   useEffect(() => { load() }, [load])
 
-  // Refetch on window focus (stale-while-revalidate pattern)
+  // Refetch on window focus (stale-while-revalidate pattern).
   useEffect(() => {
     const onFocus = () => { load() }
     window.addEventListener('focus', onFocus)
@@ -111,18 +116,37 @@ export default function PulsePage() {
         setEnergy(updated.you.energy)
       }
     } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : ''
       setSaveError(
-        err instanceof Error ? err.message : 'Could not save. Please try again.',
+        msg.length > 0 && msg.length < 80
+          ? msg
+          : 'Could not save. Please try again.',
       )
     } finally {
       setSaving(false)
     }
   }
 
-  if (loading || !view) {
+  if (loading) {
     return (
       <div className="p-9">
-        <p className="text-sm text-sl-muted">Loading…</p>
+        <p className="text-sm text-sl-muted">Getting today&apos;s pulse…</p>
+      </div>
+    )
+  }
+
+  // Initial load failure — view is null because the fetch errored before
+  // hasEverLoaded was set. Show a recovery affordance.
+  if (!view) {
+    return (
+      <div className="p-9">
+        <p className="text-sm text-sl-muted mb-4">Couldn&apos;t load today&apos;s pulse.</p>
+        <button
+          onClick={load}
+          className="text-sm font-semibold text-cr hover:underline min-h-[44px]"
+        >
+          Try again →
+        </button>
       </div>
     )
   }
@@ -139,14 +163,16 @@ export default function PulsePage() {
 
           {/* (b) Partner has checked in; their content stays hidden */}
           {state === 'partner-first' && (
-            <p className="text-sm text-sl-muted mb-6">
-              {view.partner.name} has checked in today.
+            <p key="partner-first" className="text-sm text-sl-muted mb-6 pulse-state-in">
+              {view.partner.name} is already in.
             </p>
           )}
 
           {/* (c) You checked in; partner hasn't yet */}
           {state === 'solo' && (
-            <p className="text-sm text-sl-muted mb-6">Just you so far today.</p>
+            <p key="solo" className="text-sm text-sl-muted mb-6 pulse-state-in">
+              Just you so far today.
+            </p>
           )}
 
           {/* Mood */}
@@ -213,7 +239,10 @@ export default function PulsePage() {
 
       {/* ── State d: complete — Reading leads, suggestion beneath ── */}
       {state === 'complete' && (
-        <section aria-label="Reading">
+        <section aria-label="Reading" className="pulse-state-in">
+          <p className="text-xs font-semibold text-sl-muted uppercase tracking-wider mb-3">
+            Today&apos;s reading
+          </p>
           {view.reading && (
             <p className="text-2xl font-semibold text-sl mb-3">
               {view.reading.label}
