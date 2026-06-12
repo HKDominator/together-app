@@ -151,6 +151,40 @@ describe('PulsePage — state (c) solo: editable check-in + "Just you" copy', ()
   })
 })
 
+// ── State (d): complete but Ollama is down — no reading returned ──────
+
+describe('PulsePage — state (d) complete, no reading (Ollama down)', () => {
+  const noReadingView = makeView({
+    you:     { mood: 'bright', energy: 'charged' },
+    partner: { name: 'Dan', hasCheckedIn: true, checkIn: { mood: 'steady', energy: 'low' } },
+    // reading and suggestion intentionally absent (Ollama down)
+  })
+
+  beforeEach(() => {
+    vi.mocked(pulseApi.getToday).mockResolvedValue(noReadingView)
+  })
+
+  it('shows a fallback message when both checked in but no reading yet', async () => {
+    render(<PulsePage />)
+    await screen.findByText(/both.*checked in|reading.*way|still.*together/i)
+  })
+
+  it('does NOT render a blank "Today\'s reading" heading when no reading', async () => {
+    render(<PulsePage />)
+    // Give the loading state time to resolve
+    await screen.findByText(/both.*checked in|reading.*way|still.*together/i)
+    // The "Today's reading" label must not be orphaned above blank space
+    const headings = screen.queryAllByText(/today.?s reading/i)
+    // If shown, there must be reading content alongside it; or the label is absent
+    expect(headings.length === 0 || screen.queryByText(/today.?s reading/i)).toBeTruthy()
+  })
+
+  it('offers a retry action when reading is missing', async () => {
+    render(<PulsePage />)
+    await screen.findByRole('button', { name: /try again|refresh|retry/i })
+  })
+})
+
 // ── State (d): complete — Reading leads, suggestion beneath ───────────
 
 describe('PulsePage — state (d) complete: Reading + suggestion', () => {

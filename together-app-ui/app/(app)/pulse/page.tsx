@@ -250,16 +250,34 @@ export default function PulsePage() {
       {/* ── State d: complete — Reading leads, suggestion beneath ── */}
       {state === 'complete' && (
         <section aria-label="Reading" className="pulse-reading-in">
-          <p className="text-xs font-semibold text-sl-muted uppercase tracking-wider mb-3">
-            Today&apos;s reading
-          </p>
-          {view.reading && (
-            <p className="text-2xl font-semibold text-sl mb-3">
-              {view.reading.label}
-            </p>
-          )}
-          {view.suggestion && (
-            <p className="text-sm text-sl-muted pulse-reading-suggestion">{view.suggestion}</p>
+          {view.reading ? (
+            <>
+              <p className="text-xs font-semibold text-sl-muted uppercase tracking-wider mb-3">
+                Today&apos;s reading
+              </p>
+              <p className="text-2xl font-semibold text-sl mb-3">
+                {view.reading.label}
+              </p>
+              {view.suggestion && (
+                <p className="text-sm text-sl-muted pulse-reading-suggestion">{view.suggestion}</p>
+              )}
+            </>
+          ) : (
+            /* Ollama-down fallback: both checked in but reading hasn't come through yet */
+            <div className="py-4">
+              <p className="text-sm text-sl-muted mb-1">
+                You&apos;re both checked in. The reading is still coming together.
+              </p>
+              <p className="text-xs text-sl-dim mb-4">
+                This usually takes a moment — check back shortly.
+              </p>
+              <button
+                onClick={load}
+                className="text-sm font-semibold text-cr hover:underline"
+              >
+                Try again →
+              </button>
+            </div>
           )}
         </section>
       )}
