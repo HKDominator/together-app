@@ -185,14 +185,29 @@ input:focus, select:focus, textarea:focus {
 ::-webkit-scrollbar-thumb:hover { background: rgba(26,37,51,0.25); }
 
 /* ── Reduced motion (AUD-09, DESIGN.md §6 "Do") ──────────────────── */
-/* Crossfade or instant — no flash. Presence pulse drops to static;
-   color continues to carry the online/offline signal. */
+/* "Fewer and gentler, not zero." Strip transform-based animations per
+   class; keep a gentle 150ms opacity fade so relational state changes
+   still read as transitions rather than hard snaps. */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+  /* Strip all keyframe-driven motion classes */
+  .page-enter,
+  .row-animate,
+  .modal-enter,
+  .pulse-state-in,
+  .pulse-reading-in,
+  .pulse-reading-suggestion,
+  .row-flash-active,
+  .chip-scale-flash,
+  .bubble-enter {
+    animation: none;
+    opacity: 1;
+    transform: none;
+    filter: none;
+    /* Preserve a gentle opacity crossfade for state changes */
+    transition: opacity 150ms ease, background-color 150ms ease;
   }
+
+  /* Presence pulse: static dot. Color carries the online/offline signal. */
   .presence-dot-online {
     animation: none;
   }

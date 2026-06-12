@@ -86,6 +86,37 @@ describe('globals.css — no accidental dark mode (AUD-14)', () => {
     expect(css).not.toContain('prefers-color-scheme: dark'))
 })
 
+// ── Reduced-motion: targeted, not nuclear (motion plan Commit 6) ────
+// DESIGN.md: "crossfade or instant — no flash". The previous rule used
+// `* { transition-duration: 0.01ms !important }` which also killed
+// opacity/color crossfades that aid comprehension. The new rule:
+//   • strips transform-based animations per class
+//   • keeps a gentle opacity/color fade (150ms) so state changes still read
+//   • still suppresses presence-dot-online animation
+describe('globals.css — targeted reduced-motion (motion plan)', () => {
+  it('reduced-motion block does not nuke all transitions via the * selector', () => {
+    const rmStart = css.indexOf('@media (prefers-reduced-motion: reduce)')
+    const rmBlock = css.slice(rmStart)
+    // The nuclear rule kills comprehension-aiding opacity/color fades.
+    // Confirm the wildcard transition-duration override is gone.
+    expect(rmBlock).not.toContain('transition-duration: 0.01ms')
+  })
+
+  it('reduced-motion block suppresses transform animations for animation classes', () => {
+    const rmStart = css.indexOf('@media (prefers-reduced-motion: reduce)')
+    const rmBlock = css.slice(rmStart)
+    // At least the completion flash and page-enter classes are listed
+    expect(rmBlock).toContain('row-flash-active')
+    expect(rmBlock).toContain('page-enter')
+  })
+
+  it('reduced-motion block preserves an opacity transition for state changes', () => {
+    const rmStart = css.indexOf('@media (prefers-reduced-motion: reduce)')
+    const rmBlock = css.slice(rmStart)
+    expect(rmBlock).toContain('opacity')
+  })
+})
+
 // ── Dual-presence pulse animation (DESIGN.md §5) ─────────────────────
 // The presence dot needs a CSS animation class ready for Wave 4.
 // It must also have a prefers-reduced-motion fallback — the signal
