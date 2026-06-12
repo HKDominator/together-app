@@ -60,6 +60,24 @@ describe('globals.css — no bounce easing (AUD-13)', () => {
     expect(css).not.toContain('1.56'))
 })
 
+// ── Page transition: opacity-only, 150ms (motion plan Commit 1) ─────
+// pageFadeIn must not move the page (translateY causes perceived lag on
+// every navigation). Duration ≤ 150ms so navigation feels instant.
+describe('globals.css — page transition (motion plan)', () => {
+  it('pageFadeIn keyframe has no translateY', () => {
+    const kf = css.slice(css.indexOf('@keyframes pageFadeIn'))
+    // grab just the pageFadeIn block (up to the next @keyframes or closing brace sequence)
+    const block = kf.slice(0, kf.indexOf('}', kf.indexOf('}') + 1) + 1)
+    expect(block).not.toContain('translateY')
+  })
+
+  it('page-enter animation duration is 150ms', () =>
+    expect(css).toMatch(/\.page-enter\s*\{[^}]*0\.15s/))
+
+  it('stat-pop keyframe is removed (outside the three-category delight inventory)', () =>
+    expect(css).not.toContain('statPop'))
+})
+
 // ── No accidental dark-mode block (AUD-14) ───────────────────────────
 // The app is light-only by design. The dark-mode block flips the body
 // gutter to near-black around white cards — unintended and untested.

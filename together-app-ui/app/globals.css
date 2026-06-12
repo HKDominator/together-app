@@ -34,13 +34,14 @@
 }
 
 /* ── Page entrance ────────────────────────────────────────────────── */
+/* Opacity-only — navigation is high-frequency, movement reads as lag. */
 @keyframes pageFadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 .page-enter {
-  animation: pageFadeIn 0.35s ease forwards;
+  animation: pageFadeIn 0.15s ease-out forwards;
 }
 
 /* ── Task row stagger ─────────────────────────────────────────────── */
@@ -91,17 +92,6 @@
 
 .pulse-state-in {
   animation: pulseStateIn 260ms ease-out forwards;
-}
-
-/* ── Stat card pop ────────────────────────────────────────────────── */
-@keyframes statPop {
-  0%   { transform: scale(1); }
-  50%  { transform: scale(1.04); }
-  100% { transform: scale(1); }
-}
-
-.stat-pop {
-  animation: statPop 0.4s ease forwards;
 }
 
 /* ── Dual-presence dot pulse (DESIGN.md §5) ──────────────────────── */
