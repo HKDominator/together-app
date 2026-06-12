@@ -88,6 +88,16 @@ describe('PulsePage — state (a) empty: check-in form', () => {
     render(<PulsePage />)
     await screen.findByRole('button', { name: /check in/i })
   })
+
+  it('shows orienting subtext under the Mood legend', async () => {
+    render(<PulsePage />)
+    await screen.findByText(/how are you feeling emotionally/i)
+  })
+
+  it('shows orienting subtext under the Energy legend', async () => {
+    render(<PulsePage />)
+    await screen.findByText(/what.?s your energy level/i)
+  })
 })
 
 // ── State (b): partner-first — form + partner fact ────────────────────

@@ -187,9 +187,10 @@ export default function PulsePage() {
 
           {/* Mood */}
           <fieldset className="mb-6">
-            <legend className="text-xs font-semibold text-sl uppercase tracking-wider mb-3">
+            <legend className="text-xs font-semibold text-sl uppercase tracking-wider mb-1">
               Mood
             </legend>
+            <p className="text-xs text-sl-muted mb-3">How are you feeling emotionally?</p>
             <div className="flex flex-wrap gap-2">
               {MOODS.map(({ value, label }) => (
                 <ChoiceButton<Mood>
@@ -206,9 +207,10 @@ export default function PulsePage() {
 
           {/* Energy */}
           <fieldset className="mb-8">
-            <legend className="text-xs font-semibold text-sl uppercase tracking-wider mb-3">
+            <legend className="text-xs font-semibold text-sl uppercase tracking-wider mb-1">
               Energy
             </legend>
+            <p className="text-xs text-sl-muted mb-3">What's your energy level?</p>
             <div className="flex flex-wrap gap-2">
               {ENERGIES.map(({ value, label }) => (
                 <ChoiceButton<Energy>
