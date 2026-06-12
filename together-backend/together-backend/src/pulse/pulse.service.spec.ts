@@ -157,7 +157,7 @@ describe('PulseService (unit, mocked repos)', () => {
       jest.setSystemTime(new Date('2026-06-12T21:30:00Z')) // 00:30 local, June 13
       await service.upsertCheckIn(ANA.id, { mood: 'steady', energy: 'low' })
 
-      expect(checkIns.findOne).toHaveBeenLastCalledWith({ where: { userId: ANA.id, pulseDay: '2026-06-13' } })
+      expect(checkIns.findOne).toHaveBeenCalledWith({ where: { userId: ANA.id, pulseDay: '2026-06-13' } })
       expect(checkIns.save).toHaveBeenLastCalledWith(expect.objectContaining({ pulseDay: '2026-06-13' }))
     })
   })

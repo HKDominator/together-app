@@ -16,6 +16,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { PulseCheckIn } from './entities/pulse-check-in.entity'
 import { PulseDay } from './entities/pulse-day.entity'
+import { PulseSuggestionService } from './pulse-suggestion.service'
 import { pulseDayFor } from './pulse-day.util'
 import { CheckInValues, computeReading, READINGS, ReadingKey } from './reading'
 import { UsersService } from '../users/users.service'
@@ -46,6 +47,7 @@ export class PulseService {
   constructor(
     @InjectRepository(PulseCheckIn) private readonly checkIns: Repository<PulseCheckIn>,
     @InjectRepository(PulseDay)     private readonly days:     Repository<PulseDay>,
+    private readonly suggestions: PulseSuggestionService,
     private readonly users: UsersService,
     cfg: ConfigService,
   ) {
@@ -73,6 +75,26 @@ export class PulseService {
         const winner = await this.checkIns.findOne({ where: { userId, pulseDay } })
         if (winner) await this.checkIns.save({ ...winner, ...values })
       }
+    }
+
+    // If this write completed the day, generate the suggestion now —
+    // awaited (bounded budget, approved 2026-06-12) so the reveal moment
+    // arrives whole: Reading and suggestion together. ensureSuggestion
+    // is idempotent, so an edit after completion never regenerates.
+    const allUsers    = await this.users.findAll()
+    const partnerUser = allUsers.find(u => u.id !== userId)
+    const partnerRow  = partnerUser
+      ? await this.checkIns.findOne({ where: { userId: partnerUser.id, pulseDay } })
+      : null
+    if (partnerUser && partnerRow) {
+      await this.suggestions.ensureSuggestion({
+        pulseDay,
+        reading: computeReading(values, { mood: partnerRow.mood, energy: partnerRow.energy }),
+        partners: [
+          { name: allUsers.find(u => u.id === userId)?.name ?? '', ...values },
+          { name: partnerUser.name, mood: partnerRow.mood, energy: partnerRow.energy },
+        ],
+      })
     }
     return this.getToday(userId)
   }
@@ -108,10 +130,14 @@ export class PulseService {
         { mood: own.mood,        energy: own.energy },
         { mood: partnerRow.mood, energy: partnerRow.energy },
       )
-      view.reading    = { key, label: READINGS[key] }
-      // Only the stored text crosses the boundary — suggestionSource and
-      // canonEntryId stay server-side (invisible degradation, ADR-0004).
-      view.suggestion = dayRow?.suggestionText ?? null
+      view.reading = { key, label: READINGS[key] }
+      // Lazy repair: a completed day with no stored row (crash between
+      // commit and generation) gets the deterministic Canon pick via the
+      // same conditional insert — the slot is never empty on a completed
+      // day. Only the stored text crosses the boundary; suggestionSource
+      // and canonEntryId stay server-side (invisible degradation).
+      const stored = dayRow ?? await this.suggestions.repairSuggestion(pulseDay, key)
+      view.suggestion = stored?.suggestionText ?? null
     }
     return view
   }
