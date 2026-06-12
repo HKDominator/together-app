@@ -34,14 +34,14 @@ const ENERGIES: { value: Energy; label: string }[] = [
 // (ADR-0004: divergent and aligned Readings are styled identically).
 const choiceBase = [
   'flex items-center justify-center',
-  'min-h-[44px] min-w-[88px] px-4 rounded-lg',
-  'cursor-pointer select-none text-sm font-medium border',
+  'min-h-[56px] min-w-[96px] px-5 rounded-xl',
+  'cursor-pointer select-none text-sm font-semibold border',
   'focus-within:ring-2 focus-within:ring-cr focus-within:ring-offset-1',
-  'motion-safe:transition-colors motion-safe:duration-150',
+  'motion-safe:transition-all motion-safe:duration-150',
 ].join(' ')
 
-const choiceActive   = 'bg-cm border-sl-muted text-sl'
-const choiceInactive = 'bg-surface border-gray-200 text-sl-muted hover:bg-cm-pale'
+const choiceActive   = 'bg-cm border-sl-muted text-sl shadow-sm'
+const choiceInactive = 'bg-surface border-gray-200 text-sl-muted hover:bg-cm-pale hover:border-gray-300'
 
 function ChoiceButton<T extends string>({
   value, label, current, onSelect, groupName,

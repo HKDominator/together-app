@@ -98,6 +98,21 @@ describe('PulsePage — state (a) empty: check-in form', () => {
     render(<PulsePage />)
     await screen.findByText(/what.?s your energy level/i)
   })
+
+  it('choice buttons meet generous target height (min-h-[56px])', async () => {
+    render(<PulsePage />)
+    const radio = await screen.findByRole('radio', { name: /bright/i })
+    const label = radio.closest('label')
+    expect(label?.className).toContain('min-h-[56px]')
+  })
+
+  it('active choice button carries shadow class for visual mass', async () => {
+    render(<PulsePage />)
+    const radio = await screen.findByRole('radio', { name: /bright/i })
+    fireEvent.click(radio)
+    const label = radio.closest('label')
+    expect(label?.className).toContain('shadow')
+  })
 })
 
 // ── State (b): partner-first — form + partner fact ────────────────────
