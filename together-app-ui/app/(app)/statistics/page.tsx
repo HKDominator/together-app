@@ -230,8 +230,23 @@ export default function StatisticsPage() {
         </div>
       </div>
 
+      {/* ══ EMPTY STATE (both views) ═════════════════ */}
+      {total === 0 && (
+        <div
+          data-testid="stats-empty-state"
+          className="flex flex-col items-center justify-center py-20 text-center"
+        >
+          <p className="text-base font-semibold text-sl mb-2">
+            Nothing to measure yet
+          </p>
+          <p className="text-sm text-sl-muted max-w-xs">
+            Add your first task together and your shared progress will show up here.
+          </p>
+        </div>
+      )}
+
       {/* ══ VISUAL VIEW ══════════════════════════════ */}
-      {view === 'visual' && (
+      {view === 'visual' && total > 0 && (
         <div className="flex flex-col gap-6">
 
           {/* Moved Together — hero */}
@@ -282,7 +297,7 @@ export default function StatisticsPage() {
       )}
 
       {/* ══ TABULAR VIEW ═════════════════════════════ */}
-      {view === 'tabular' && (
+      {view === 'tabular' && total > 0 && (
         <div className="bg-surface rounded-2xl border border-cm overflow-x-auto">
           <div className="min-w-[560px]">
             <div className="grid grid-cols-[40px_2fr_1fr_1fr_1fr_1fr] px-6 py-3 bg-cm-pale border-b border-cm">
