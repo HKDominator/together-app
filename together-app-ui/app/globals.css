@@ -20,6 +20,16 @@
   --color-sl-dim: #8FA5B8;
   --color-cm: #F2EAE3;
   --color-cm-pale: #FAF8F6;
+  --color-surface: #FFFFFF;
+  --color-bg: #F5F5F4;
+  --color-success: #27AE60;
+  --color-success-pale: #DCFCE7;
+  --color-info: #2980B9;
+  --color-info-pale: #DBEAFE;
+  --color-warning: #E67E22;
+  --color-warning-pale: #FEF3C6;
+  --color-danger: #DC2626;
+  --color-danger-pale: #FFE2E2;
   --font-display: var(--font-geist-sans);
 }
 
