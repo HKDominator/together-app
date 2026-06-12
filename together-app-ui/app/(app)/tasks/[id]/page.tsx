@@ -103,10 +103,10 @@ export function TaskDetailContent({ id }: { id: string }) {
               simultaneously on this same task page. Screen reader reads the text. */}
           {partnerViewingThis && (
             <p
-              className="flex items-center gap-1.5 text-xs text-gray-400 mb-3"
+              className="flex items-center gap-1.5 text-xs text-gray-400 mb-3 bubble-enter"
               aria-label={`${partner!.name} is looking at this too`}
             >
-              <span className="w-2 h-2 rounded-full bg-green-400 motion-safe:animate-pulse" aria-hidden="true" />
+              <span className="w-2 h-2 rounded-full bg-success presence-dot-online" aria-hidden="true" />
               {partner!.name} is looking at this too
             </p>
           )}

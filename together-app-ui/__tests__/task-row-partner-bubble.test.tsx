@@ -75,4 +75,11 @@ describe('Task row partner bubble (FD-06 Step 4)', () => {
     const bubble = screen.getByRole('img', { name: /bora is viewing this task/i })
     expect(bubble).toHaveAttribute('aria-label', 'Bora is viewing this task')
   })
+
+  it('partner bubble carries bubble-enter class for enter animation', () => {
+    mockViewingByUser = { u2: 't1' }
+    render(<TasksPage />)
+    const bubble = screen.getByRole('img', { name: /bora is viewing this task/i })
+    expect(bubble.className).toContain('bubble-enter')
+  })
 })

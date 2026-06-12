@@ -309,7 +309,7 @@ export default function TasksPage() {
                             role="img"
                             aria-label={`${partner.name} is viewing this task`}
                             title={`${partner.name} is viewing this task`}
-                            className="w-5 h-5 rounded-full flex items-center justify-center text-white shrink-0"
+                            className="w-5 h-5 rounded-full flex items-center justify-center text-white shrink-0 bubble-enter"
                             style={{ background: partner.avatarColor, fontSize: 11 }}
                           >
                             {partner.initials}

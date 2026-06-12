@@ -66,4 +66,11 @@ describe('Task Detail Page — viewing presence (FD-06 Step 4)', () => {
     render(<TaskDetailContent id="t1" />)
     expect(screen.queryByText(/looking at this too/i)).toBeNull()
   })
+
+  it('co-presence indicator carries bubble-enter class for enter animation', () => {
+    mockViewingByUser = { u2: 't1' }
+    render(<TaskDetailContent id="t1" />)
+    const indicator = screen.getByText(/bora is looking at this too/i).closest('p')
+    expect(indicator?.className).toContain('bubble-enter')
+  })
 })
