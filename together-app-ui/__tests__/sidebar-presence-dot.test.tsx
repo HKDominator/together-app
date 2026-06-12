@@ -17,13 +17,15 @@ vi.mock('@/context/TasksContext', () => ({
   useTasks: () => ({ users: [SELF, PARTNER], currentUser: SELF }),
 }))
 
-// Presence state is controlled per-test via mockOnline
+// Presence state is controlled per-test via mockOnline and mockIsConnected
 let mockOnline = new Set<string>()
+let mockIsConnected: boolean | undefined = true
 vi.mock('@/context/PresenceContext', () => ({
   usePresence: () => ({
-    onlineUserIds:  mockOnline,
-    viewingByUser:  {},
-    setViewingTask: vi.fn(),
+    onlineUserIds:        mockOnline,
+    viewingByUser:        {},
+    setViewingTask:       vi.fn(),
+    isPresenceConnected:  mockIsConnected,
   }),
 }))
 
@@ -31,6 +33,8 @@ const dot = (name: string) =>
   screen.getByRole('img', { name: new RegExp(name, 'i') })
 
 describe('Sidebar presence dot (FD-06)', () => {
+  beforeEach(() => { mockIsConnected = true })
+
   it('partner dot uses success token when partner is online', () => {
     mockOnline = new Set(['u2'])
     render(<Sidebar />)
@@ -60,5 +64,21 @@ describe('Sidebar presence dot (FD-06)', () => {
     mockOnline = new Set()
     render(<Sidebar />)
     expect(dot('bora is offline')).not.toHaveClass('motion-safe:animate-pulse')
+  })
+
+  it('partner dot shows gray when WS is disconnected, even if onlineUserIds still has them', () => {
+    mockIsConnected = false
+    mockOnline = new Set(['u2']) // stale data — WS just dropped
+    render(<Sidebar />)
+    // Partner should not appear green — stale "online" must not persist
+    expect(screen.getByRole('img', { name: /bora/i })).toHaveClass('bg-gray-500')
+    expect(screen.getByRole('img', { name: /bora/i })).not.toHaveClass('bg-success')
+  })
+
+  it('self dot stays green regardless of WS connection state', () => {
+    mockIsConnected = false
+    mockOnline = new Set()
+    render(<Sidebar />)
+    expect(dot('ana is online')).toHaveClass('bg-success')
   })
 })

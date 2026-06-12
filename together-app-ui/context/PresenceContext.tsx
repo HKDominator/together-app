@@ -8,16 +8,18 @@ export interface PresenceSnapshot {
 }
 
 interface PresenceContextValue {
-  onlineUserIds:  Set<string>
-  viewingByUser:  Record<string, string>
-  setViewingTask: (taskId: string | null) => void
+  onlineUserIds:       Set<string>
+  viewingByUser:       Record<string, string>
+  setViewingTask:      (taskId: string | null) => void
+  isPresenceConnected?: boolean
 }
 
 const PresenceContext = createContext<PresenceContextValue | null>(null)
 
 export function PresenceProvider({ children }: { children: ReactNode }) {
-  const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set())
-  const [viewingByUser, setViewingByUser] = useState<Record<string, string>>({})
+  const [onlineUserIds,       setOnlineUserIds]       = useState<Set<string>>(new Set())
+  const [viewingByUser,       setViewingByUser]        = useState<Record<string, string>>({})
+  const [isPresenceConnected, setIsPresenceConnected] = useState<boolean>(true)
   const viewingTaskRef = useRef<string | null>(null)
 
   useEffect(() => {
@@ -44,9 +46,16 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
     // Re-emit our own viewing focus on reconnect — the server's record died
     // with the old socket and the new socket starts with no focus registered.
     const onConnect = () => {
+      setIsPresenceConnected(true)
       if (viewingTaskRef.current !== null) {
         sock.emit('presence:viewing', { taskId: viewingTaskRef.current })
       }
+    }
+    // Clear stale presence data on disconnect so partners don't show as
+    // online when the WS link is down.
+    const onDisconnect = () => {
+      setIsPresenceConnected(false)
+      setOnlineUserIds(new Set())
     }
 
     sock.on('presence:state',   onState)
@@ -54,6 +63,7 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
     sock.on('presence:offline', onOffline)
     sock.on('presence:viewing', onViewing)
     sock.on('connect',          onConnect)
+    sock.on('disconnect',       onDisconnect)
 
     return () => {
       sock.off('presence:state',   onState)
@@ -61,6 +71,7 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
       sock.off('presence:offline', onOffline)
       sock.off('presence:viewing', onViewing)
       sock.off('connect',          onConnect)
+      sock.off('disconnect',       onDisconnect)
     }
   }, [])
 
@@ -73,7 +84,7 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <PresenceContext.Provider value={{ onlineUserIds, viewingByUser, setViewingTask }}>
+    <PresenceContext.Provider value={{ onlineUserIds, viewingByUser, setViewingTask, isPresenceConnected }}>
       {children}
     </PresenceContext.Provider>
   )

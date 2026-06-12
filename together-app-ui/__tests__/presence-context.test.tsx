@@ -129,6 +129,31 @@ describe('PresenceContext (FD-06)', () => {
     expect(mockEmit).not.toHaveBeenCalled()
   })
 
+  it('clears onlineUserIds on socket disconnect — stale online data must not persist', async () => {
+    render(<PresenceProvider><OnlineHarness /></PresenceProvider>)
+
+    act(() => { emitWs('presence:state', { online: ['u1', 'u2'], viewing: {} }) })
+    await waitFor(() => expect(screen.getByTestId('online').textContent).toBe('u1,u2'))
+
+    act(() => { emitWs('disconnect') })
+
+    await waitFor(() => expect(screen.getByTestId('online').textContent).toBe(''))
+  })
+
+  it('exposes isPresenceConnected false on disconnect, true on connect', async () => {
+    function ConnHarness() {
+      const { isPresenceConnected } = usePresence()
+      return <span data-testid="conn">{String(isPresenceConnected ?? 'undefined')}</span>
+    }
+    render(<PresenceProvider><ConnHarness /></PresenceProvider>)
+
+    act(() => { emitWs('connect') })
+    await waitFor(() => expect(screen.getByTestId('conn').textContent).toBe('true'))
+
+    act(() => { emitWs('disconnect') })
+    await waitFor(() => expect(screen.getByTestId('conn').textContent).toBe('false'))
+  })
+
   it('re-emits the current viewing focus on socket reconnect so the server record is fresh', async () => {
     function Btn() {
       const { setViewingTask } = usePresence()

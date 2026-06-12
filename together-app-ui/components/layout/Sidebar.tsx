@@ -17,7 +17,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const { users, currentUser } = useTasks();
   const { isAdmin, logout } = useAuth();
-  const { onlineUserIds } = usePresence();
+  const { onlineUserIds, isPresenceConnected = true } = usePresence();
 
   return (
     <aside
@@ -100,8 +100,10 @@ export default function Sidebar() {
         </p>
         {users.map((u) => {
           // Self is always shown online — you know you're connected.
-          // Partner dot reflects real presence state from the server.
-          const isOnline = u.id === currentUser.id || onlineUserIds.has(u.id)
+          // Partner dot: green only when WS is live AND server says they're online.
+          // When WS drops, isPresenceConnected is false and stale data is cleared.
+          const isOnline = u.id === currentUser.id
+            || (isPresenceConnected && onlineUserIds.has(u.id))
           return (
             <div key={u.id} className="flex items-center gap-2.5 mb-2.5">
               <div
