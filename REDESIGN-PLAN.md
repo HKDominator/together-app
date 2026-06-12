@@ -600,7 +600,7 @@ Order is dependency-driven: tokens unblock the visual sweep, the identity wire u
 
 *Unplanned fix committed alongside Wave 4 (2026-06-12):* `auth.service.ts` `beginLogin`/`verifyOtp`/`verifyPin` were calling plain `findOne()` on the `User` repo — both `passwordHash` and `securityPinHash` carry `select:false` on the entity, so TypeORM silently omitted them, causing `bcrypt.compare(pw, undefined)` → "data and hash arguments required" crash on every login. Fixed via private `findUserForAuth()` helper using `createQueryBuilder + addSelect`. `auth.service.spec.ts` updated to mock `createQueryBuilder`; 111 BE jest green.
 
-**Wave 5 — surface feature build. FD-16 Couple Pulse: COMPLETE 2026-06-12.**
+**Wave 5 — surface feature build. FD-16 Couple Pulse + UI cleanup: COMPLETE 2026-06-12.**
 - **FD-16 ✓ COMPLETE** Couple Pulse (replaces the placeholder; kills **CR-05** jargon copy). All 10 steps committed on `refactor/together_app_v2_1`; **196 FE vitest / 192 BE jest green.** Architecture brief approved 2026-06-12 (all 8 open decisions resolved); spec ground truth: [ADR-0004](docs/adr/0004-couple-pulse.md), `.scratch/couple-pulse/PRD.md`, CONTEXT.md glossary.
   - **Step 1 ✓** (`daa33fc`) — OllamaClient extracted from `logging/ai/` to shared `src/ai/ai.module.ts`; LogsModule imports AiModule.
   - **Step 2 ✓** (`2e133c8` red, `c226f2f` green) — `src/pulse/reading.ts`: frozen mood (`bright/steady/tender/heavy`) × energy (`charged/steady/low`) vocab; six Readings; pure symmetric first-match rule table, exhaustively tested over all 144 ordered pairs. Carrying/quiet boundary: both moods ∈ {tender, heavy} AND ≥1 heavy.
@@ -612,9 +612,14 @@ Order is dependency-driven: tokens unblock the visual sweep, the identity wire u
   - **Step 8 ✓** (`3d795d0` red, `938b6ee` green) — `lib/pulse.ts`: `PulseTodayView` type, `pulseApi.getToday()` / `upsertCheckIn()` with 401-retry via `refreshOnce`, `derivePulseView()` pure function (empty / partner-first / solo / complete). 180 FE vitest green.
   - **Step 9 ✓** (`da14f13` red, `a6fdf27` green) — `app/(app)/pulse/page.tsx`: four-state Couple Pulse UI. (a) check-in form; (b) form + partner-fact, content strictly hidden; (c) editable form + "Just you so far today."; (d) Reading leads, suggestion beneath. Brand tokens, `motion-safe:` on every transition, no "Score", no numerals. 196 FE vitest green.
   - **Step 10 ✓** — Copy pass: no em dashes in any user-facing Pulse copy (all clear). REDESIGN-PLAN.md and wave5-status.md updated. FD-16 / CR-05 100% done. Playwright e2e deliberately skipped (runner-mismatch, approved 2026-06-12).
-- Auth surface: **FD-07, FD-08, FD-09, FD-10, FD-11**.
-- **FD-12** chat/workspace rename, **FD-15** logs tooling, **FD-17** account IA.
-- Responsive/touch: **AUD-10** 44px targets + touch-visible controls, **AUD-12** responsive ChatPanel.
+- **FD-07 ✓ COMPLETE** (`024371f` red, `bdb569b` green) — `StepProgress` nav in login page: 3 accessible `<li>` steps with `aria-current="step"`, tracks password→OTP→PIN transitions. No field-name collision in aria-labels.
+- **FD-10 ✓ COMPLETE** (`cc3fa24` red, `9195dec` green) — Security PIN collapsed into an "Advanced" toggle on register page. Starts hidden; plain-language copy when expanded; no "3FA" jargon visible.
+- **FD-11 ✓ COMPLETE** (`5dfc12a` red, `a3fdea4` green) — `forgot-password` + `reset-password` pages adopt the same `grid grid-cols-1 md:grid-cols-2` split layout as login/register. `data-testid="auth-panel"` on the decorative column.
+- **FD-12 ✓ COMPLETE** (`4516e1d` red, `b2ab7c9` green) — ChatPanel header: `role="banner"`, shows partner name from `useTasks()` instead of "Workspace chat". Sidebar section label changed from "Workspace" to "Together".
+- **AUD-10 + AUD-12 ✓ COMPLETE** (`1614198`) — Close button and Send button have `min-h-[44px]`; chat panel uses `w-[calc(100vw-3rem)] sm:w-80 max-w-sm`. Applied alongside FD-12; spec-only commit validates.
+- **FD-17 ✓ COMPLETE** (`3032145` red, `b9bf8b3` green) — Account index: Profile and Security cards are now `<Link>` elements to `/account/profile` and `/account/security` (no more "coming soon" placeholders). Stub pages created for both routes. **223 FE vitest / 192 BE jest green.**
+- Auth surface remaining: **FD-08, FD-09** (brand panels + SaaS copy) — NOT in this sweep.
+- **FD-15** logs tooling — explicitly deferred to last.
 
 ### Stretch — only after Wave 4 ships
 
@@ -641,3 +646,4 @@ The "Approved decisions" table above was approved as proposed on 2026-06-10 (zer
 - **Phase 4 complete (2026-06-12):** Wave 4 all 8 steps committed on `refactor/together_app_v2_1`; **171 FE vitest / 111 BE jest green. Wave 4 is 100% done. Next: Wave 5.**
 - **Unplanned BE fix (2026-06-12):** `bcrypt.compare(pw, undefined)` crash on login fixed in `auth.service.ts` — `passwordHash`/`securityPinHash` are `select:false`; `findUserForAuth` private helper now uses `createQueryBuilder + addSelect`. Changes are uncommitted as of handoff; commit them before starting Wave 5 code.
 - **Wave 5 FD-16 complete (2026-06-12):** Couple Pulse all 10 steps committed on `refactor/together_app_v2_1`; **196 FE vitest / 192 BE jest green. FD-16 / CR-05 100% done.** Remaining Wave 5 items: auth surface (FD-07/08/09/10/11), chat rename (FD-12), logs tooling (FD-15), account IA (FD-17), responsive/touch (AUD-10/AUD-12).
+- **Wave 5 UI cleanup complete (2026-06-12):** FD-07, FD-10, FD-11, FD-12, AUD-10, AUD-12, FD-17 all committed on `refactor/together_app_v2_1`; **223 FE vitest / 192 BE jest green.** Remaining: FD-08/FD-09 (brand auth panels, out of scope this sweep); FD-15 logs tooling (deferred to last step).
