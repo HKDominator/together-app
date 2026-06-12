@@ -89,6 +89,14 @@ describe('PulseService (unit, mocked repos)', () => {
 
   describe('upsertCheckIn', () => {
     it("creates today's row when the caller has not checked in yet", async () => {
+      // The store reflects the save, so the returned view reads the
+      // persisted row rather than echoing the input.
+      checkIns.save.mockImplementation(async (v: Partial<PulseCheckIn>) => {
+        const row = { id: 'ci-new', ...v } as PulseCheckIn
+        checkIns.find.mockResolvedValue([row])
+        return row
+      })
+
       const view = await service.upsertCheckIn(ANA.id, { mood: 'bright', energy: 'charged' })
 
       expect(checkIns.save).toHaveBeenCalledWith(expect.objectContaining({

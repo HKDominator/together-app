@@ -14,6 +14,7 @@ import { AuthModule } from './auth/auth.module'
 import { ChatModule } from './chat/chat.module'
 import { LogsModule } from './logging/logs.module'
 import { TagsModule } from './tags/tags.module'
+import { PulseModule } from './pulse/pulse.module'
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { TagsModule } from './tags/tags.module'
     CommentsModule,
     ChatModule,
     LogsModule,
+    PulseModule,
     GraphqlAppModule,
   ],
 })
