@@ -1,5 +1,11 @@
-// Wave 5 Step 6 (red stub): no validators yet — DTO validation tests will fail.
+import { IsIn } from 'class-validator'
+import { MOODS, ENERGIES } from '../reading'
+import type { Mood, Energy } from '../reading'
+
 export class UpsertCheckInDto {
-  mood!: string
-  energy!: string
+  @IsIn([...MOODS])
+  mood!: Mood
+
+  @IsIn([...ENERGIES])
+  energy!: Energy
 }

@@ -13,12 +13,15 @@ import { PulseCheckIn } from './entities/pulse-check-in.entity'
 import { PulseDay } from './entities/pulse-day.entity'
 import { PulseService } from './pulse.service'
 import { PulseSuggestionService } from './pulse-suggestion.service'
+import { PulseController } from './pulse.controller'
 import { UsersModule } from '../users/users.module'
 import { AiModule } from '../ai/ai.module'
+import { AuthModule } from '../auth/auth.module'
 
 @Module({
-  imports:   [TypeOrmModule.forFeature([PulseCheckIn, PulseDay]), UsersModule, AiModule],
-  providers: [PulseService, PulseSuggestionService],
-  exports:   [PulseService],
+  imports:     [TypeOrmModule.forFeature([PulseCheckIn, PulseDay]), UsersModule, AiModule, AuthModule],
+  controllers: [PulseController],
+  providers:   [PulseService, PulseSuggestionService],
+  exports:     [PulseService],
 })
 export class PulseModule {}
