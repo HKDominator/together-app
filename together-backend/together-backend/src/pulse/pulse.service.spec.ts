@@ -13,6 +13,7 @@ import { Test, TestingModule } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { ConfigService } from '@nestjs/config'
 import { PulseService } from './pulse.service'
+import { PulseSuggestionService } from './pulse-suggestion.service'
 import { PulseCheckIn } from './entities/pulse-check-in.entity'
 import { PulseDay } from './entities/pulse-day.entity'
 import { pulseDayFor } from './pulse-day.util'
@@ -50,6 +51,7 @@ describe('PulseService (unit, mocked repos)', () => {
   let service:  PulseService
   let checkIns: { findOne: jest.Mock; find: jest.Mock; save: jest.Mock; create: jest.Mock }
   let days:     { findOne: jest.Mock }
+  let suggestions: { ensureSuggestion: jest.Mock; repairSuggestion: jest.Mock }
 
   beforeEach(async () => {
     jest.useFakeTimers().setSystemTime(NOON_UTC)
@@ -61,6 +63,10 @@ describe('PulseService (unit, mocked repos)', () => {
       create:  jest.fn().mockImplementation((v: Partial<PulseCheckIn>) => v),
     }
     days = { findOne: jest.fn().mockResolvedValue(null) }
+    suggestions = {
+      ensureSuggestion: jest.fn().mockResolvedValue(null),
+      repairSuggestion: jest.fn().mockResolvedValue(null),
+    }
 
     const usersMock = {
       findAll: jest.fn().mockResolvedValue([ANA, DAN]),
@@ -75,6 +81,7 @@ describe('PulseService (unit, mocked repos)', () => {
         PulseService,
         { provide: getRepositoryToken(PulseCheckIn), useValue: checkIns },
         { provide: getRepositoryToken(PulseDay),     useValue: days },
+        { provide: PulseSuggestionService,           useValue: suggestions },
         { provide: UsersService,                     useValue: usersMock },
         { provide: ConfigService,                    useValue: cfgMock },
       ],
@@ -230,16 +237,76 @@ describe('PulseService (unit, mocked repos)', () => {
       expect(json).not.toContain('quiet-balcony-tea')
     })
 
-    it('(d) with no stored suggestion yet: suggestion is null, never fabricated here', async () => {
+    it('(d) with no stored row: lazy-repairs with the Canon pick — the slot is never empty on a completed day', async () => {
       checkIns.find.mockResolvedValue([
         makeRow({ id: 'ci-1', userId: ANA.id }),
         makeRow({ id: 'ci-2', userId: DAN.id }),
       ])
+      suggestions.repairSuggestion.mockResolvedValue({
+        id: 'pd-repaired', pulseDay: TODAY,
+        suggestionText: 'Shoulder to shoulder doing nothing in particular. It counts.',
+        suggestionSource: 'canon', canonEntryId: 'step-nothing-counts',
+        readingAtGeneration: 'in-step', generatedAt: new Date(),
+      })
 
       const view = await service.getToday(ANA.id)
 
-      expect(view.reading).toBeDefined()
-      expect(view.suggestion).toBeNull()
+      expect(suggestions.repairSuggestion).toHaveBeenCalledWith(TODAY, 'in-step')
+      expect(view.suggestion).toBe('Shoulder to shoulder doing nothing in particular. It counts.')
+    })
+
+    it('(d) with a stored row: serves it without invoking repair', async () => {
+      checkIns.find.mockResolvedValue([
+        makeRow({ id: 'ci-1', userId: ANA.id }),
+        makeRow({ id: 'ci-2', userId: DAN.id }),
+      ])
+      days.findOne.mockResolvedValue({
+        id: 'pd-1', pulseDay: TODAY, suggestionText: 'Stored already.',
+        suggestionSource: 'llm', canonEntryId: 'step-crossword',
+        readingAtGeneration: 'in-step', generatedAt: new Date(),
+      })
+
+      const view = await service.getToday(ANA.id)
+
+      expect(view.suggestion).toBe('Stored already.')
+      expect(suggestions.repairSuggestion).not.toHaveBeenCalled()
+    })
+
+    it('solo and empty days never touch the suggestion pipeline', async () => {
+      await service.getToday(ANA.id) // empty
+      checkIns.find.mockResolvedValue([makeRow({ userId: ANA.id })])
+      await service.getToday(ANA.id) // solo
+
+      expect(suggestions.repairSuggestion).not.toHaveBeenCalled()
+      expect(suggestions.ensureSuggestion).not.toHaveBeenCalled()
+    })
+  })
+
+  // ── Generation trigger: the write that completes the day ──────────
+
+  describe('upsertCheckIn — suggestion generation trigger', () => {
+    it('awaits ensureSuggestion when the write completes the day, with the full context', async () => {
+      checkIns.findOne
+        .mockResolvedValueOnce(null) // own row: create path
+        .mockResolvedValueOnce(makeRow({ id: 'ci-2', userId: DAN.id, mood: 'tender', energy: 'low' }))
+
+      await service.upsertCheckIn(ANA.id, { mood: 'heavy', energy: 'steady' })
+
+      expect(suggestions.ensureSuggestion).toHaveBeenCalledTimes(1)
+      expect(suggestions.ensureSuggestion).toHaveBeenCalledWith({
+        pulseDay: TODAY,
+        reading:  'carrying-it-together',
+        partners: expect.arrayContaining([
+          { name: 'Ana', mood: 'heavy',  energy: 'steady' },
+          { name: 'Dan', mood: 'tender', energy: 'low' },
+        ]),
+      })
+    })
+
+    it('does not generate on the first check-in of the day', async () => {
+      await service.upsertCheckIn(ANA.id, { mood: 'bright', energy: 'charged' })
+
+      expect(suggestions.ensureSuggestion).not.toHaveBeenCalled()
     })
 
     it('frames the view for whoever calls — Dan sees Ana as the partner', async () => {
