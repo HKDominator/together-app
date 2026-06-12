@@ -118,13 +118,13 @@ export default function Sidebar() {
                   {u.role}
                 </p>
               </div>
-              {/* motion-safe: prefix means the pulse only runs when the user
-                  has NOT enabled prefers-reduced-motion (DESIGN.md §5 — global,
-                  no exceptions). Reduced-motion users see a solid color dot. */}
+              {/* presence-dot-online uses the bespoke 2s ease-in-out presencePulse
+                  keyframe defined in globals.css — correct curve per DESIGN.md §5.
+                  The global reduced-motion block drops the animation to static. */}
               <span
                 role="img"
                 aria-label={`${u.name} is ${isOnline ? 'online' : 'offline'}`}
-                className={`w-2 h-2 rounded-full${isOnline ? ' motion-safe:animate-pulse' : ''} ${isOnline ? 'bg-success' : 'bg-gray-500'}`}
+                className={`w-2 h-2 rounded-full ${isOnline ? 'bg-success presence-dot-online' : 'bg-gray-500'}`}
               />
             </div>
           )

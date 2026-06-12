@@ -49,11 +49,11 @@ describe('Sidebar presence dot (FD-06)', () => {
     expect(dot('ana is online')).toHaveClass('bg-success')
   })
 
-  it('online dot has motion-safe:animate-pulse class; offline dot does not', () => {
+  it('online dot has presence-dot-online class (bespoke 2s ease-in-out pulse)', () => {
     mockOnline = new Set(['u2'])
     render(<Sidebar />)
-    expect(dot('ana is online')).toHaveClass('motion-safe:animate-pulse')
-    expect(dot('bora is online')).toHaveClass('motion-safe:animate-pulse')
+    expect(dot('ana is online')).toHaveClass('presence-dot-online')
+    expect(dot('bora is online')).toHaveClass('presence-dot-online')
   })
 
   it('offline dot does not carry the pulse class', () => {
