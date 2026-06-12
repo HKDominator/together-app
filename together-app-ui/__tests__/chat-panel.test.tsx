@@ -7,6 +7,13 @@ vi.mock('@/context/AuthContext', () => ({
   useAuth: () => ({ user: { id: 'u1', name: 'Alice', avatarColor: '#c0392b' } }),
 }))
 
+vi.mock('@/context/TasksContext', () => ({
+  useTasks: () => ({
+    users:       [{ id: 'u1', name: 'Alice', avatarColor: '#c0392b', initials: 'AL' }],
+    currentUser: { id: 'u1', name: 'Alice', avatarColor: '#c0392b', initials: 'AL' },
+  }),
+}))
+
 const mockSocket = {
   on:   vi.fn(),
   off:  vi.fn(),

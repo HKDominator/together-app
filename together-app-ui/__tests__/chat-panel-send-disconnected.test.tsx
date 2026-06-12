@@ -8,6 +8,13 @@ vi.mock('@/context/AuthContext', () => ({
   useAuth: () => ({ user: { id: 'u1', name: 'Alice', avatarColor: '#c0392b' } }),
 }))
 
+vi.mock('@/context/TasksContext', () => ({
+  useTasks: () => ({
+    users:       [{ id: 'u1', name: 'Alice', avatarColor: '#c0392b', initials: 'AL' }],
+    currentUser: { id: 'u1', name: 'Alice', avatarColor: '#c0392b', initials: 'AL' },
+  }),
+}))
+
 const mockSocket = { on: vi.fn(), off: vi.fn(), emit: vi.fn(), connected: false }
 vi.mock('@/lib/chat-ws', () => ({ getChatSocket: () => mockSocket }))
 vi.mock('@/lib/chat-api', () => ({ chatApi: { history: vi.fn() } }))

@@ -1,16 +1,18 @@
-// Destination: together-app-ui/components/chat/ChatPanel.tsx
-// Floating chat panel — bottom-right, expandable. Hydrates history
-// on mount, then live-updates via socket.io.
 'use client'
 import { useCallback, useEffect, useRef, useState, KeyboardEvent } from 'react'
 import { useAuth } from '@/context/AuthContext'
+import { useTasks } from '@/context/TasksContext'
 import { getChatSocket, ChatMessage } from '@/lib/chat-ws'
 import { chatApi } from '@/lib/chat-api'
 
 const ROOM = 'workspace'
 
 export default function ChatPanel() {
-  const { user } = useAuth()
+  const { user }                  = useAuth()
+  const { users, currentUser }    = useTasks()
+  const partner                   = users.find(u => u.id !== currentUser?.id)
+  const partnerName               = partner?.name ?? 'your partner'
+
   const [open,         setOpen]         = useState(false)
   const [messages,     setMessages]     = useState<ChatMessage[]>([])
   const [draft,        setDraft]        = useState('')
@@ -90,10 +92,16 @@ export default function ChatPanel() {
           💬 Chat
         </button>
       ) : (
-        <div className="w-80 h-[28rem] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-gray-200">
-          <div className="px-4 py-3 flex items-center justify-between border-b bg-sl">
-            <span className="text-white text-sm font-semibold">Workspace chat</span>
-            <button onClick={() => setOpen(false)} aria-label="Close chat" className="text-white/70 hover:text-white text-lg">×</button>
+        <div className="w-[calc(100vw-3rem)] sm:w-80 max-w-sm h-[28rem] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-gray-200">
+          <div role="banner" className="px-4 py-3 flex items-center justify-between border-b bg-sl">
+            <span className="text-white text-sm font-semibold">{partnerName}</span>
+            <button
+              onClick={() => setOpen(false)}
+              aria-label="Close chat"
+              className="text-white/70 hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center text-lg"
+            >
+              ×
+            </button>
           </div>
 
           <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3 bg-gray-50">
@@ -142,7 +150,12 @@ export default function ChatPanel() {
                 placeholder="Type a message…"
                 className="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-200 focus:border-red-400 focus:outline-none"
               />
-              <button onClick={send} className="px-4 py-2 rounded-lg text-white text-sm font-semibold bg-cr">Send</button>
+              <button
+                onClick={send}
+                className="px-4 py-2 rounded-lg text-white text-sm font-semibold bg-cr min-h-[44px]"
+              >
+                Send
+              </button>
             </div>
           </div>
         </div>

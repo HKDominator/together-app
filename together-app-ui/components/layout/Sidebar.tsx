@@ -108,7 +108,7 @@ export default function Sidebar() {
         <p
           className="mb-3 text-xs font-semibold text-white/30"
         >
-          Workspace
+          Together
         </p>
         {users.map((u) => {
           // Self is always shown online — you know you're connected.
