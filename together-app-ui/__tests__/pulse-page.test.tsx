@@ -163,6 +163,18 @@ describe('PulsePage — state (d) complete: Reading + suggestion', () => {
     await screen.findByText('In step')
     expect(screen.queryByRole('radio', { name: /bright/i })).toBeNull()
   })
+
+  it('Reading section uses pulse-reading-in (richer bloom, not the plain state-in)', async () => {
+    render(<PulsePage />)
+    const section = await screen.findByRole('region', { name: /reading/i })
+    expect(section.className).toContain('pulse-reading-in')
+  })
+
+  it('suggestion carries stagger delay class pulse-reading-suggestion', async () => {
+    render(<PulsePage />)
+    const suggestion = await screen.findByText('Tea on the balcony, phones inside')
+    expect(suggestion.className).toContain('pulse-reading-suggestion')
+  })
 })
 
 // ── Submit flow ───────────────────────────────────────────────────────

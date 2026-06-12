@@ -239,7 +239,7 @@ export default function PulsePage() {
 
       {/* ── State d: complete — Reading leads, suggestion beneath ── */}
       {state === 'complete' && (
-        <section aria-label="Reading" className="pulse-state-in">
+        <section aria-label="Reading" className="pulse-reading-in">
           <p className="text-xs font-semibold text-sl-muted uppercase tracking-wider mb-3">
             Today&apos;s reading
           </p>
@@ -249,7 +249,7 @@ export default function PulsePage() {
             </p>
           )}
           {view.suggestion && (
-            <p className="text-sm text-sl-muted">{view.suggestion}</p>
+            <p className="text-sm text-sl-muted pulse-reading-suggestion">{view.suggestion}</p>
           )}
         </section>
       )}
