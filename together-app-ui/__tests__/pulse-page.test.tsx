@@ -28,6 +28,22 @@ vi.mock('@/lib/pulse', async (importActual) => {
   }
 })
 
+// Presence state controlled per-test — default: only self online.
+let mockOnlineIds = new Set<string>(['u1'])
+vi.mock('@/context/PresenceContext', () => ({
+  usePresence: () => ({
+    onlineUserIds:       mockOnlineIds,
+    viewingByUser:       {},
+    setViewingTask:      vi.fn(),
+    isPresenceConnected: true,
+  }),
+}))
+
+// Auth — default: self is u1.
+vi.mock('@/context/AuthContext', () => ({
+  useAuth: () => ({ user: { id: 'u1' } }),
+}))
+
 // ── fixtures ──────────────────────────────────────────────────────────
 
 const makeView = (over: Partial<PulseTodayView> = {}): PulseTodayView => ({
@@ -50,6 +66,77 @@ const completeView = makeView({
 beforeEach(() => {
   vi.mocked(pulseApi.getToday).mockResolvedValue(emptyView)
   vi.mocked(pulseApi.upsertCheckIn).mockResolvedValue(emptyView)
+})
+
+// ── Step 3: presence wiring ───────────────────────────────────────────
+
+describe('PulsePage — Breathing field present in all states', () => {
+  it('renders BreathingField in state (a) empty', async () => {
+    render(<PulsePage />)
+    await screen.findByRole('radio', { name: /bright/i })
+    expect(screen.getByTestId('breath-you')).toBeInTheDocument()
+  })
+
+  it('renders BreathingField in state (d) complete', async () => {
+    vi.mocked(pulseApi.getToday).mockResolvedValue(completeView)
+    render(<PulsePage />)
+    await screen.findByText('In step')
+    expect(screen.getByTestId('breath-you')).toBeInTheDocument()
+  })
+})
+
+describe('PulsePage — partner circle tied to live presence, not check-in', () => {
+  it('shows only the "you" circle when only self is online', async () => {
+    mockOnlineIds = new Set(['u1'])
+    render(<PulsePage />)
+    await screen.findByRole('radio', { name: /bright/i })
+    expect(screen.queryByTestId('breath-partner')).toBeNull()
+  })
+
+  it('shows the partner circle when another user is also online', async () => {
+    mockOnlineIds = new Set(['u1', 'u2'])
+    render(<PulsePage />)
+    await screen.findByRole('radio', { name: /bright/i })
+    expect(screen.getByTestId('breath-partner')).toBeInTheDocument()
+  })
+
+  it('shows partner circle in state (d) complete when partner is online (presence ≠ check-in)', async () => {
+    mockOnlineIds = new Set(['u1', 'u2'])
+    vi.mocked(pulseApi.getToday).mockResolvedValue(completeView)
+    render(<PulsePage />)
+    await screen.findByText('In step')
+    expect(screen.getByTestId('breath-partner')).toBeInTheDocument()
+  })
+
+  it('recedes the breathing field to a halo in state (d) complete', async () => {
+    vi.mocked(pulseApi.getToday).mockResolvedValue(completeView)
+    render(<PulsePage />)
+    await screen.findByText('In step')
+    expect(screen.getByTestId('breath-you').closest('[aria-hidden]')).toHaveClass('breath-recede')
+  })
+
+  it('does NOT recede the breathing field in the sparse states (centerpiece)', async () => {
+    render(<PulsePage />)
+    await screen.findByRole('radio', { name: /bright/i })
+    expect(screen.getByTestId('breath-you').closest('[aria-hidden]')).not.toHaveClass('breath-recede')
+  })
+})
+
+// ── Step 2 layout ────────────────────────────────────────────────────
+
+describe('PulsePage — layout', () => {
+  it('mood choices container uses a 2-column grid (prevents asymmetric wrap at 360px)', async () => {
+    render(<PulsePage />)
+    await screen.findByRole('radio', { name: /bright/i })
+    const moodContainer = screen.getByTestId('mood-choices')
+    expect(moodContainer.className).toContain('grid-cols-2')
+  })
+
+  it('sparse-state column wrapper is centered (mx-auto)', async () => {
+    render(<PulsePage />)
+    await screen.findByRole('radio', { name: /bright/i })
+    expect(screen.getByTestId('pulse-column')).toHaveClass('mx-auto')
+  })
 })
 
 // ── CR-05: "Coming soon" placeholder is dead ──────────────────────────

@@ -95,6 +95,17 @@ export class TasksGateway
     this.presence.setViewing(client.id, user.id, taskId)
   }
 
+  // presence-resync: a client whose presence provider remounts onto an
+  // already-live socket (navigating back from a route outside the app shell)
+  // missed the connect-time snapshot in handleConnection. It can re-request the
+  // current state; reply to that socket only — a re-seed, never a broadcast.
+  @SubscribeMessage('presence:sync')
+  onSync(@ConnectedSocket() client: Socket) {
+    const user = client.data?.user as User | undefined
+    if (!user) return
+    client.emit('presence:state', this.presence.snapshot())
+  }
+
   emitTaskCreated(task: Task):  void { this.server?.emit('task:created', task) }
   emitTaskUpdated(task: Task):  void { this.server?.emit('task:updated', task) }
   emitTaskDeleted(id: string):  void { this.server?.emit('task:deleted', { id }) }

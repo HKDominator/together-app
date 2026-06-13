@@ -110,4 +110,31 @@ describe('TasksGateway presence (FD-06)', () => {
 
     expect(server.emit).not.toHaveBeenCalled()
   })
+
+  // presence-resync: a client whose presence provider remounts onto an
+  // already-live socket (navigating back from a route outside the app shell)
+  // missed the connect-time snapshot. It can re-request the current state; the
+  // gateway replies to that socket only — a re-seed, not a broadcast.
+  it('replies with the current presence:state snapshot to a client that requests a resync', async () => {
+    const { gateway } = makeGateway({ id: 'u1', name: 'Ana' })
+    const client = makeSocket()
+    await gateway.handleConnection(client as any)
+    client.emit.mockClear()
+
+    gateway.onSync(client as any)
+
+    expect(client.emit).toHaveBeenCalledWith(
+      'presence:state',
+      expect.objectContaining({ online: ['u1'] }),
+    )
+  })
+
+  it('ignores a resync request from a socket with no authenticated user', () => {
+    const { gateway } = makeGateway({ id: 'u1', name: 'Ana' })
+    const client = makeSocket() // handleConnection never ran
+
+    gateway.onSync(client as any)
+
+    expect(client.emit).not.toHaveBeenCalled()
+  })
 })

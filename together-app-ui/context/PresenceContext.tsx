@@ -65,6 +65,14 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
     sock.on('connect',          onConnect)
     sock.on('disconnect',       onDisconnect)
 
+    // If the socket is already connected at mount, we missed the connect-time
+    // presence:state push (e.g. the provider remounted after a trip to the
+    // landing page, which lives outside the (app) layout). Re-request the
+    // snapshot so onlineUserIds re-seeds — otherwise the partner dot is stuck
+    // offline. On a fresh socket the server pushes state on connect, so we
+    // only ask when we know we missed it.
+    if (sock.connected) sock.emit('presence:sync')
+
     return () => {
       sock.off('presence:state',   onState)
       sock.off('presence:online',  onOnline)

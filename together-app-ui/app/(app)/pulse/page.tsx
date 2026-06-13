@@ -16,6 +16,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { pulseApi, derivePulseView } from '@/lib/pulse'
 import type { PulseTodayView, Mood, Energy } from '@/lib/pulse'
+import { usePresence } from '@/context/PresenceContext'
+import { useAuth } from '@/context/AuthContext'
+import BreathingField from '@/components/pulse/BreathingField'
 
 const MOODS: { value: Mood; label: string }[] = [
   { value: 'bright', label: 'Bright' },
@@ -66,6 +69,15 @@ function ChoiceButton<T extends string>({
 }
 
 export default function PulsePage() {
+  const { onlineUserIds } = usePresence()
+  const { user }          = useAuth()
+
+  // ADR-0004 Addendum A §"Partner identity": derive from presence, not payload.
+  // Together is single-tenant (ADR-0003); any online id that isn't ours = partner.
+  const partnerOnline = user
+    ? [...onlineUserIds].some(id => id !== user.id)
+    : false
+
   const [view,      setView]      = useState<PulseTodayView | null>(null)
   const [mood,      setMood]      = useState<Mood | null>(null)
   const [energy,    setEnergy]    = useState<Energy | null>(null)
@@ -154,7 +166,8 @@ export default function PulsePage() {
   const state = derivePulseView(view)
 
   return (
-    <div className="p-9 max-w-lg">
+    <div data-testid="pulse-column" className="p-9 max-w-lg mx-auto">
+      <BreathingField partnerPresent={partnerOnline} recede={state === 'complete'} />
       <h1 className="font-display text-3xl font-bold text-sl mb-2">Today</h1>
 
       {/* ── States a / b / c: show check-in form ── */}
@@ -198,7 +211,7 @@ export default function PulsePage() {
               Mood
             </legend>
             <p className="text-xs text-sl-muted mb-3">How are you feeling emotionally?</p>
-            <div className="flex flex-wrap gap-2.5">
+            <div data-testid="mood-choices" className="grid grid-cols-2 gap-2.5 sm:flex sm:flex-wrap">
               {MOODS.map(({ value, label }) => (
                 <ChoiceButton<Mood>
                   key={value}

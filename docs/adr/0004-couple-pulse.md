@@ -57,3 +57,53 @@ Generation reuses the existing local Ollama integration (`together-backend/src/l
 - Sequenced as Wave 5 in REDESIGN-PLAN.md; the placeholder (and CR-05 copy) is replaced by the real surface.
 - Copy and visuals must follow the no-pressure rule: a low Sync Score is a weather report, not a failure state; no history-based streaks or trends that create obligation.
 - Adds a Pulse data model (check-ins per partner per day) and a backend module that consumes `OllamaClient` outside the logging context — consider extracting the client to a shared module when that lands.
+
+---
+
+## Addendum A — Synchronized Breathing field (Pulse visual centerpiece)
+
+- **Status:** Accepted
+- **Date:** 2026-06-13
+- **Scope:** `together-app-ui/app/(app)/pulse/page.tsx` + `globals.css`. Pure frontend, visual only.
+
+### Context
+
+The Pulse surface is sparse by design — three of its four states (empty, partner-first, solo) are mostly whitespace and a form. The critique (`.impeccable/critique/2026-06-12…pulse`) scored the page "technically correct and emotionally inert": the once-a-day Reading payoff landed flat and the sparse states had no warmth. We want a single relational anchor that makes the page feel *accompanied* without adding copy, data, or a pressure mechanic.
+
+This collides with a hard rule in DESIGN.md §1: delight is bounded to three categories (completion moments, presence transitions, considered empty states) and **"does not leak into ambient decoration … nothing else animates."** A circle that breathes continuously is, on its face, the ambient decoration that line forbids. DESIGN.md also requires that any delight outside the three categories get deliberate review — this addendum *is* that review.
+
+### Decision
+
+Pulse gets a **Synchronized Breathing field**: one or two soft, blurred, slowly-breathing circles that anchor the sparse states and lock into phase when the partner is live. It is admitted as a **sanctioned ambient-presence exception**, justified by binding it to two of the three existing delight categories rather than inventing a fourth:
+
+- It is the **considered-empty-state** treatment for states (a)/(b)/(c) — those *are* the empty states the system says deserve craft.
+- The phase-alignment when the partner comes online is a **presence transition** — the same family as the sidebar presence dot.
+
+The exception is granted **only within the hard ceilings below.** Exceeding them re-opens this addendum.
+
+### Hard constraints (audit-checkable; a violation is a regression, not a tweak)
+
+1. **Amplitude ceiling — scale oscillation ≤ ±4% (use ±3–4%, i.e. 0.96–1.04).** Coupled opacity sway ≤ ±0.06. The breath must read as "alive," never as decoration. If it's noticeable without looking for it, it's too strong.
+2. **Period floor — one breath cycle ≥ 6s (use 6–8s).** No faster. Faster reads as a loader or a heartbeat-monitor, both wrong.
+3. **Palette — warm-sand neutrals only.** The orbs are soft-blurred discs with a *low-contrast* warm-sand radial fill (you: `#F1E5D7`→`#DEC9AF`; partner: `#F6EEE3`→`#E9DAC8`) at ~0.9 opacity — deepened siblings of the `cm` family, because `cm`/`cm-pale` themselves are invisible against the `stone-100` (`#F5F5F4`) app background (revised 2026-06-13: the original `cm`/`cm-pale`-only flat-blob rule produced a sub-perceptible smudge on the real page). The radial is tonal, not saturated — no crimson, no pink/rose, no Valentine's wash (DESIGN.md). Crimson stays rationed to the single "Check in" button in states a/b/c.
+4. **The second circle means *live presence*, consistently, in every state — never "checked in."** Presence (online now) and check-in (logged today) are orthogonal facts and must not be conflated. Partner online ⇒ second circle; partner offline ⇒ no second circle, in *all four* states including (d).
+5. **Presence-driven only; valence-blind.** The breath looks byte-identical regardless of the Reading. "In step", "Different speeds today", and "Quiet day for both" produce the same field. The breath never encodes mood, alignment, or any reading valence — that would smuggle a grade back in (cf. the no-red→green guardrail in the main decision).
+6. **It recedes in state (d).** When the Reading reveals, the field drops to a low-opacity halo behind the Reading card and hands focus to the Reading on the same beat. The Reading is the peak-end payoff; the breath must never compete with it.
+7. **Reduced motion strips everything kinetic.** Under `prefers-reduced-motion: reduce`: no breathing, no phase-lerp, no rAF — circles render static at rest scale. Partner-present is still shown, carried entirely by the *presence* of the static second circle (geometry, not motion) — mirroring how the presence dot keeps its color when its pulse is stripped.
+
+### Mechanism notes (locked)
+
+- **The connect moment is a two-orb choreography (revised 2026-06-13).** The original single-blob-that-pulses read as a stray smudge and the overlapping-blur "sync" was invisible. Replaced with two distinct orbs on separate position/scale layers: idle is one centered orb breathing subtly; when the partner comes online the "you" orb drifts aside (CSS `.is-paired` translate) while the partner orb slides in from the side (CSS `partnerArrive`) and the two settle into an overlapping union. The visible signal is **positional** — a one-time presence transition, *not* raised-amplitude ambient breath, so the §1 amplitude ceiling is untouched.
+- **Phase-alignment** runs ~3s via `requestAnimationFrame`, easing the partner orb's breath phase offset (~π, counter-breathing) toward 0 (unison) on top of the positional settle. The clock is a **local `performance.now()` captured at the partner offline→online transition** — no PresenceContext API change, no timestamp added to the snapshot. Convergence is one-directional and non-repeating within a session (no re-sync on every window focus — a repeating animation would be the slot-machine pattern the main ADR rejects). The rAF loop stops once aligned and hands back to the shared CSS keyframe.
+- **Partner identity** is derived, not fetched: `partnerOnline = [...onlineUserIds].some(id => id !== useAuth().user.id)`. Safe because Pulse is single-tenant per ADR-0003. No `partner.userId` is added to the Pulse payload.
+
+### Boundaries held (unchanged from the main decision)
+
+- Pure visual: no backend, no storage, no new socket events. Rides the existing Wave-4 presence boolean (ADR-0002, one connection).
+- No TasksContext dependency — PresenceContext is a separate provider.
+- No numeral, no "Score," no nudge/reminder copy, no re-roll, no history. The breath replaces nudge copy: in the solo state the partner's circle arriving *is* the "they're here" signal, with no words.
+
+### Consequences
+
+- The next `/impeccable audit` will see continuous motion on Pulse. This addendum is the paper trail that it is sanctioned; the audit's job becomes verifying the constraints above (amplitude, period, palette, valence-blindness, reduced-motion), not flagging the motion's existence.
+- Any future change that raises amplitude/period, makes the breath valence-aware, ties the second circle to check-in instead of presence, or lets it persist as the centerpiece in state (d) must re-open this addendum first.

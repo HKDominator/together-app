@@ -136,6 +136,21 @@ describe('globals.css — dual-presence pulse animation', () => {
   })
 })
 
+// ── Synchronized Breathing field (ADR-0004 Addendum A) ───────────────
+// The idle breath is CSS so reduced-motion is handled by the global block.
+// Hard ceilings live in the math module (breath-math.test.ts); here we lock
+// the CSS contracts: the keyframe exists and is suppressed under reduced motion.
+describe('globals.css — breathing field (ADR-0004 Addendum A)', () => {
+  it('defines the pulseBreathe keyframe', () =>
+    expect(css).toContain('@keyframes pulseBreathe'))
+
+  it('suppresses the orb breath and slot motion under reduced motion', () => {
+    const rmBlock = css.slice(css.indexOf('@media (prefers-reduced-motion: reduce)'))
+    expect(rmBlock).toContain('.breath-orb-anim')
+    expect(rmBlock).toContain('.breath-slot')
+  })
+})
+
 // ── Contrast verification (DESIGN.md §6) ─────────────────────────────
 // These are mathematical assertions documenting that the three flagged
 // sidebar color pairings are within their permitted usage bounds.

@@ -8,6 +8,9 @@ import { PresenceProvider, usePresence } from '@/context/PresenceContext'
 let sockHandlers: Record<string, Array<(...args: unknown[]) => void>> = {}
 const mockEmit = vi.fn()
 const mockSocket = {
+  // socket.io exposes `connected`; the provider uses it to decide whether it
+  // missed the connect-time snapshot and must re-request one on (re)mount.
+  connected: false,
   on:  (ev: string, cb: (...args: unknown[]) => void) => { (sockHandlers[ev] ??= []).push(cb) },
   off: (ev: string, cb: (...args: unknown[]) => void) => {
     sockHandlers[ev] = (sockHandlers[ev] ?? []).filter(h => h !== cb)
@@ -30,7 +33,7 @@ function ViewingHarness() {
 }
 
 describe('PresenceContext (FD-06)', () => {
-  beforeEach(() => { sockHandlers = {}; mockEmit.mockReset() })
+  beforeEach(() => { sockHandlers = {}; mockEmit.mockReset(); mockSocket.connected = false })
 
   it('seeds onlineUserIds from the presence:state snapshot on connect', async () => {
     render(<PresenceProvider><OnlineHarness /></PresenceProvider>)
@@ -152,6 +155,27 @@ describe('PresenceContext (FD-06)', () => {
 
     act(() => { emitWs('disconnect') })
     await waitFor(() => expect(screen.getByTestId('conn').textContent).toBe('false'))
+  })
+
+  // Regression: the landing page is outside the (app) layout, so navigating
+  // there unmounts PresenceProvider and returning remounts it onto the live
+  // singleton socket. No `connect` fires and the server only pushes
+  // presence:state on a real connect — so the remounted provider would sit
+  // with an empty online set (partner dot stuck offline) unless it re-requests.
+  it('re-requests the snapshot (emits presence:sync) when mounting onto an already-connected socket', () => {
+    mockSocket.connected = true
+
+    render(<PresenceProvider><OnlineHarness /></PresenceProvider>)
+
+    expect(mockEmit).toHaveBeenCalledWith('presence:sync')
+  })
+
+  it('does not re-request a snapshot when the socket is not yet connected (server pushes state on connect)', () => {
+    mockSocket.connected = false
+
+    render(<PresenceProvider><OnlineHarness /></PresenceProvider>)
+
+    expect(mockEmit).not.toHaveBeenCalledWith('presence:sync')
   })
 
   it('re-emits the current viewing focus on socket reconnect so the server record is fresh', async () => {
