@@ -1,9 +1,11 @@
 // Destination: together-backend/together-backend/src/stats/stats.controller.ts
 // REPLACE — now exposes /stats and /stats/user/:id (the SP-backed one).
-import { Controller, Get, Param } from '@nestjs/common'
+import { Controller, Get, Param, UseGuards } from '@nestjs/common'
 import { StatsService } from './stats.service'
+import { AuthGuard } from '../auth/guards/auth.guard'
 
 @Controller('stats')
+@UseGuards(AuthGuard)
 export class StatsController {
   constructor(private readonly stats: StatsService) {}
 

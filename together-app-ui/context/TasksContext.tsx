@@ -32,6 +32,8 @@ import { api, isNetworkError } from '@/lib/api'
 import { getSocket } from '@/lib/ws'
 import { offlineQueue } from '@/lib/offlineQueue'
 import { useOnlineStatus } from '@/hooks/useOnlineStatus'
+import { useAuth } from '@/context/AuthContext'
+import { usePresence } from '@/context/PresenceContext'
 
 const INITIAL_PAGE_SIZE = 20
 const PAGE_SIZE         = 20
@@ -74,10 +76,18 @@ export function tasksReducer(state: ReducerState, action: Action): ReducerState 
     case 'REMOVE':
       return { ...state, tasks: state.tasks.filter(t => t.id !== action.payload.id) }
     case 'REPLACE_ID': {
-      const idx = state.tasks.findIndex(t => t.id === action.payload.oldId)
-      if (idx === -1) return { ...state, tasks: [action.payload.task, ...state.tasks] }
-      const next = state.tasks.slice(); next[idx] = action.payload.task
-      return { ...state, tasks: next }
+      const realId  = action.payload.task.id
+      const idx     = state.tasks.findIndex(t => t.id === action.payload.oldId)
+      if (idx === -1) {
+        // tempId already gone (WS beat us) — update in place or prepend once.
+        return state.tasks.some(t => t.id === realId)
+          ? { ...state, tasks: state.tasks.map(t => t.id === realId ? action.payload.task : t) }
+          : { ...state, tasks: [action.payload.task, ...state.tasks] }
+      }
+      const next = state.tasks.slice()
+      next[idx] = action.payload.task
+      // Dedup: WS echo may have prepended a real-id entry before we got here.
+      return { ...state, tasks: next.filter((t, i) => i === idx || t.id !== realId) }
     }
     default:
       return state
@@ -107,20 +117,25 @@ interface TasksContextValue {
 
   startGenerator: () => Promise<void>
   stopGenerator:  () => Promise<void>
+
+  lastCompletion: { taskId: string; completedAt: number } | null
+
+  drainError:     string | null
+  clearDrainError:() => void
 }
 
 const TasksContext = createContext<TasksContextValue | null>(null)
 
 const tempId = () => `tmp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
 
-function optimisticTask(dto: ValidatedTaskData, id: string): Task {
+export function makeOptimisticTask(dto: ValidatedTaskData, id: string, createdById: string): Task {
   const now = new Date().toISOString()
   return {
     id,
     title:       dto.title,
     description: dto.description ?? '',
     assigneeId:  dto.assigneeId,
-    createdById: 'u1',
+    createdById,
     priority:    dto.priority,
     state:       'todo',
     dueDate:     dto.dueDate || null,
@@ -131,6 +146,8 @@ function optimisticTask(dto: ValidatedTaskData, id: string): Task {
 
 // ── Provider ─────────────────────────────────────────────────────────
 export function TasksProvider({ children }: { children: ReactNode }) {
+  const { user: authUser } = useAuth()
+  const { onlineUserIds } = usePresence()
   const [state, dispatch]             = useReducer(tasksReducer, { tasks: [] })
   const [isLoading, setIsLoading]     = useState(true)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
@@ -140,15 +157,38 @@ export function TasksProvider({ children }: { children: ReactNode }) {
   const [pendingCount, setPendingCount] = useState(0)
   const [generatorRunning, setGeneratorRunning] = useState(false)
   const [users, setUsers] = useState<User[]>([])
+  const [drainError, setDrainError] = useState<string | null>(null)
+  const [lastCompletion, setLastCompletion] = useState<{ taskId: string; completedAt: number } | null>(null)
   const { isOnline } = useOnlineStatus()
 
   const isOnlineRef = useRef(isOnline)
   useEffect(() => { isOnlineRef.current = isOnline }, [isOnline])
 
+  // Refs so the WS handler (closed over once, empty-deps useEffect) always
+  // reads the latest tasks, users, authUser, and presence without re-subscribing.
+  const tasksRef          = useRef<Task[]>([])
+  const usersRef          = useRef<User[]>([])
+  const authUserRef       = useRef(authUser)
+  const onlineUserIdsRef  = useRef(onlineUserIds)
+  const completionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => { tasksRef.current = state.tasks },   [state.tasks])
+  useEffect(() => { usersRef.current = users },          [users])
+  useEffect(() => { authUserRef.current = authUser },    [authUser])
+  useEffect(() => { onlineUserIdsRef.current = onlineUserIds }, [onlineUserIds])
+
   // Refs to guard concurrent pagination calls — the scroll handler can
   // easily fire two "loadMore" attempts before the first resolves.
   const loadingMoreRef = useRef(false)
   const prefetchedPageRef = useRef<Map<number, Task[]>>(new Map())
+
+  // BUG-24: track ids created/deleted by this tab so WS echo doesn't double-adjust totalTasks
+  const ownCreatedIds = useRef(new Set<string>())
+  const ownDeletedIds = useRef(new Set<string>())
+
+  // BUG-26: track whether the socket has ever connected so we can distinguish
+  // initial connect (skip — initial hydrate handles it) from reconnect (resync).
+  const hasConnectedRef = useRef(false)
 
   const refreshPending = useCallback(() => setPendingCount(offlineQueue.size()), [])
 
@@ -234,21 +274,55 @@ export function TasksProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const sock = getSocket()
 
+    const onConnect = () => {
+      if (!hasConnectedRef.current) { hasConnectedRef.current = true; return }
+      // Reconnect: fetch page 1 to catch events missed while disconnected.
+      api.listTasks({ page: 1, perPage: INITIAL_PAGE_SIZE })
+        .then(page => {
+          dispatch({ type: 'SET_TASKS', payload: page.items })
+          setCurrentPage(page.page)
+          setTotalTasks(page.total)
+          setTotalPages(page.totalPages)
+          prefetchedPageRef.current.clear()
+        })
+        .catch(() => {})
+    }
+
     const onCreated = (t: Task) => {
       dispatch({ type: 'UPSERT', payload: t })
-      setTotalTasks(n => n + 1)
-      // Invalidate prefetch cache — inserting a new row shifts pages.
       prefetchedPageRef.current.clear()
+      if (ownCreatedIds.current.has(t.id)) {
+        ownCreatedIds.current.delete(t.id)
+        return  // already counted optimistically
+      }
+      setTotalTasks(n => n + 1)
     }
-    const onUpdated = (t: Task) => dispatch({ type: 'UPSERT', payload: t })
+    const onUpdated = (t: Task) => {
+      // Detect not-done → done transition with partner online — trigger completion flash.
+      const prev = tasksRef.current.find(task => task.id === t.id)
+      if (prev && prev.state !== 'done' && t.state === 'done') {
+        const partner = usersRef.current.find(u => u.id !== authUserRef.current?.id)
+        if (partner && onlineUserIdsRef.current.has(partner.id)) {
+          setLastCompletion({ taskId: t.id, completedAt: Date.now() })
+          if (completionTimerRef.current) clearTimeout(completionTimerRef.current)
+          completionTimerRef.current = setTimeout(() => setLastCompletion(null), 500)
+        }
+      }
+      dispatch({ type: 'UPSERT', payload: t })
+    }
     const onDeleted = ({ id }: { id: string }) => {
       dispatch({ type: 'REMOVE', payload: { id } })
-      setTotalTasks(n => Math.max(0, n - 1))
       prefetchedPageRef.current.clear()
+      if (ownDeletedIds.current.has(id)) {
+        ownDeletedIds.current.delete(id)
+        return  // already decremented optimistically
+      }
+      setTotalTasks(n => Math.max(0, n - 1))
     }
     const onGenStart = () => setGeneratorRunning(true)
     const onGenStop  = () => setGeneratorRunning(false)
 
+    sock.on('connect',           onConnect)
     sock.on('task:created',      onCreated)
     sock.on('task:updated',      onUpdated)
     sock.on('task:deleted',      onDeleted)
@@ -256,6 +330,7 @@ export function TasksProvider({ children }: { children: ReactNode }) {
     sock.on('generator:stopped', onGenStop)
 
     return () => {
+      sock.off('connect',           onConnect)
       sock.off('task:created',      onCreated)
       sock.off('task:updated',      onUpdated)
       sock.off('task:deleted',      onDeleted)
@@ -285,10 +360,13 @@ export function TasksProvider({ children }: { children: ReactNode }) {
           if (op.kind === 'create') {
             const real = await api.createTask(op.dto)
             dispatch({ type: 'REPLACE_ID', payload: { oldId: op.tempId, task: real } })
+            ownCreatedIds.current.add(real.id)
+            offlineQueue.remapTempId(op.tempId, real.id)
           } else if (op.kind === 'update') {
             const real = await api.updateTask(op.taskId, op.dto)
             dispatch({ type: 'UPSERT', payload: real })
           } else if (op.kind === 'delete') {
+            ownDeletedIds.current.add(op.taskId)
             await api.deleteTask(op.taskId)
           } else if (op.kind === 'state') {
             const real = await api.setTaskState(op.taskId, op.newState)
@@ -298,15 +376,18 @@ export function TasksProvider({ children }: { children: ReactNode }) {
         } catch (err) {
           if (isNetworkError(err)) break
           offlineQueue.remove(op.id)
-          try {
-            const page = await api.listTasks({ page: 1, perPage: INITIAL_PAGE_SIZE })
-            if (!cancelled) {
-              dispatch({ type: 'SET_TASKS', payload: page.items })
-              setCurrentPage(page.page)
-              setTotalTasks(page.total)
-              setTotalPages(page.totalPages)
-            }
-          } catch { /* ignore */ }
+          if (op.kind === 'create') {
+            dispatch({ type: 'REMOVE', payload: { id: op.tempId } })
+            setTotalTasks(n => Math.max(0, n - 1))
+            if (!cancelled) setDrainError(
+              `"${op.dto.title}" could not be saved: ${(err as Error).message}`
+            )
+          } else if (op.kind === 'delete') {
+            ownDeletedIds.current.delete(op.taskId)
+          }
+          // Non-create failures: drop the op and continue.
+          // A full SET_TASKS reset would discard any extra pages the user
+          // had loaded — WebSocket / next natural page load will correct state.
         }
         refreshPending()
       }
@@ -318,13 +399,14 @@ export function TasksProvider({ children }: { children: ReactNode }) {
   // ── Public mutations ───────────────────────────────────────────
   const createTask = useCallback(async (dto: ValidatedTaskData) => {
     const tId = tempId()
-    dispatch({ type: 'UPSERT', payload: optimisticTask(dto, tId) })
+    dispatch({ type: 'UPSERT', payload: makeOptimisticTask(dto, tId, authUser?.id ?? '') })
     setTotalTasks(n => n + 1)
 
     if (!isOnlineRef.current) { offlineQueue.enqueueCreate(tId, dto); refreshPending(); return }
     try {
       const real = await api.createTask(dto)
       dispatch({ type: 'REPLACE_ID', payload: { oldId: tId, task: real } })
+      ownCreatedIds.current.add(real.id)
     } catch (err) {
       if (isNetworkError(err)) {
         offlineQueue.enqueueCreate(tId, dto); refreshPending()
@@ -359,9 +441,11 @@ export function TasksProvider({ children }: { children: ReactNode }) {
     setTotalTasks(n => Math.max(0, n - 1))
 
     if (!isOnlineRef.current) { offlineQueue.enqueueDelete(id); refreshPending(); return }
+    ownDeletedIds.current.add(id)
     try {
       await api.deleteTask(id)
     } catch (err) {
+      ownDeletedIds.current.delete(id)
       if (isNetworkError(err)) { offlineQueue.enqueueDelete(id); refreshPending() }
       else { dispatch({ type: 'UPSERT', payload: before }); setTotalTasks(n => n + 1); throw err }
     }
@@ -387,10 +471,10 @@ export function TasksProvider({ children }: { children: ReactNode }) {
   }, [state.tasks, refreshPending])
 
   const startGenerator = useCallback(async () => {
-    try { await api.startGenerator(); setGeneratorRunning(true) } catch { /* ignore */ }
+    await api.startGenerator(); setGeneratorRunning(true)
   }, [])
   const stopGenerator = useCallback(async () => {
-    try { await api.stopGenerator(); setGeneratorRunning(false) } catch { /* ignore */ }
+    await api.stopGenerator(); setGeneratorRunning(false)
   }, [])
 
   return (
@@ -398,7 +482,7 @@ export function TasksProvider({ children }: { children: ReactNode }) {
       value={{
         tasks:        state.tasks,
         users:        users,
-        currentUser:  users[0],
+        currentUser:  users.find(u => u.id === authUser?.id) ?? users[0],
         isOnline,
         isLoading,
         isLoadingMore,
@@ -414,6 +498,9 @@ export function TasksProvider({ children }: { children: ReactNode }) {
         prefetchNext,
         startGenerator,
         stopGenerator,
+        lastCompletion,
+        drainError,
+        clearDrainError: () => setDrainError(null),
       }}
     >
       {children}

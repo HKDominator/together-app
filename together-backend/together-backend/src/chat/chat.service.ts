@@ -45,7 +45,7 @@ export class ChatService {
       senderName:  d.senderName,
       senderColor: d.senderColor,
       body:        d.body,
-      createdAt:   new Date().toISOString(),
+      createdAt:   ((d as any).createdAt as Date).toISOString(),
     }
   }
 }

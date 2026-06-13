@@ -1,6 +1,6 @@
 // Destination: together-backend/together-backend/src/tasks/tasks.service.ts
 import {
-  BadRequestException, Injectable, NotFoundException, Optional,
+  BadRequestException, ConflictException, Injectable, NotFoundException, Optional,
 } from '@nestjs/common'
 import { TasksRepository } from './tasks.repository'
 import { Task, TaskState, VALID_TRANSITIONS } from './entities/task.entity'
@@ -12,17 +12,11 @@ import { UsersService } from '../users/users.service'
 import { TasksGateway } from './tasks.gateway'
 import { CommentsService } from '../comments/comments.service'
 
-// Bronze: there's exactly one user seeded ('owner'). Silver replaces this
-// with the authenticated user from a guard — for now we pull the first
-// owner from the DB at request time.
-import { UsersRepository } from '../users/users.repository'
-
 @Injectable()
 export class TasksService {
   constructor(
     private readonly repo:         TasksRepository,
     private readonly usersService: UsersService,
-    private readonly usersRepo:    UsersRepository,
     @Optional() private readonly gateway?:  TasksGateway,
     @Optional() private readonly comments?: CommentsService,
   ) {}
@@ -45,16 +39,15 @@ export class TasksService {
     return task
   }
 
-  async create(dto: CreateTaskDto): Promise<Task> {
+  async create(dto: CreateTaskDto, creatorId: string): Promise<Task> {
     await this.assertAssigneeExists(dto.assigneeId)
     this.assertDueDateNotInPast(dto.dueDate)
 
-    const creator = await this.resolveDefaultCreator()
     const task = await this.repo.insert({
       title:       dto.title.trim(),
       description: (dto.description ?? '').trim(),
       assigneeId:  dto.assigneeId,
-      createdById: creator.id,
+      createdById: creatorId,
       priority:    dto.priority,
       state:       TaskState.TODO,
       dueDate:     dto.dueDate ?? null,
@@ -66,6 +59,7 @@ export class TasksService {
   async update(id: string, dto: UpdateTaskDto): Promise<Task> {
     await this.findOne(id)
     if (dto.assigneeId) await this.assertAssigneeExists(dto.assigneeId)
+    if (dto.dueDate !== undefined) this.assertDueDateNotInPast(dto.dueDate)
 
     const patch: Partial<Task> = {}
     if (dto.title !== undefined)       patch.title       = dto.title.trim()
@@ -98,8 +92,12 @@ export class TasksService {
         `Allowed from ${task.state}: [${allowed.join(', ') || 'none'}]`,
       )
     }
-    const updated = await this.repo.update(id, { state: newState })
-    if (!updated) throw new NotFoundException(`Task ${id} not found`)
+    const updated = await this.repo.setStateIfCurrent(id, task.state, newState)
+    if (updated === null) {
+      throw new ConflictException(
+        `Task ${id} state changed concurrently — please reload and try again`,
+      )
+    }
     this.gateway?.emitTaskUpdated(updated)
     return updated
   }
@@ -112,17 +110,15 @@ export class TasksService {
 
   private assertDueDateNotInPast(dueDate?: string | null): void {
     if (!dueDate) return
-    const today = new Date(); today.setHours(0, 0, 0, 0)
-    if (new Date(dueDate) < today) {
+    const now = new Date()
+    const todayStr = [
+      now.getFullYear(),
+      String(now.getMonth() + 1).padStart(2, '0'),
+      String(now.getDate()).padStart(2, '0'),
+    ].join('-')
+    if (dueDate < todayStr) {
       throw new BadRequestException('Due date must be today or in the future')
     }
   }
 
-  private async resolveDefaultCreator() {
-    // Until Silver auth lands, "the creator" is just the first owner.
-    const all = await this.usersRepo.findAll()
-    const owner = all.find(u => u.role === 'owner') ?? all[0]
-    if (!owner) throw new BadRequestException('No users seeded — run the seed script')
-    return owner
-  }
 }

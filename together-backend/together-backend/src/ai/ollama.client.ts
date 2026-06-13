@@ -1,4 +1,6 @@
-// Destination: together-backend/together-backend/src/logging/ai/ollama.client.ts
+// Destination: together-backend/together-backend/src/ai/ollama.client.ts
+// Extracted from logging/ai/ for Wave 5 (ADR-0004): the Pulse module and
+// the anomaly pipeline both inject this client via the shared AiModule.
 //
 // Minimal Ollama client. We do NOT use the SDK on purpose — keeps the
 // dependency surface small and makes failure modes (timeout, parse

@@ -68,14 +68,18 @@ export class StatsService {
       }
     })
 
-    const done = byState[TaskState.DONE] ?? 0
-    const completionRate = total > 0 ? Math.round((done / total) * 100) : 0
+    const done      = byState[TaskState.DONE]      ?? 0
+    const cancelled = byState[TaskState.CANCELLED] ?? 0
+    const actionable = total - cancelled
+    const completionRate = actionable > 0 ? Math.round((done / actionable) * 100) : 0
 
     const topCommentedTasks: TopCommentedTask[] = []
     if (this.commentsRepo) {
-      const top = await this.commentsRepo.topTasksByCommentCount(5)
+      const top   = await this.commentsRepo.topTasksByCommentCount(5)
+      const tasks = await this.tasksRepo.findByIds(top.map(t => t.taskId))
+      const byId  = new Map(tasks.map(t => [t.id, t]))
       for (const t of top) {
-        const task = await this.tasksRepo.findById(t.taskId)
+        const task = byId.get(t.taskId)
         if (task) topCommentedTasks.push({ taskId: task.id, title: task.title, count: t.count })
       }
     }

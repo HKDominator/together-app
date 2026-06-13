@@ -5,9 +5,10 @@
 // and the one JSX line are new; everything else is the Silver version.
 // ─────────────────────────────────────────────────────────────────────
 'use client'
-import { ReactNode, use, useState } from 'react'
+import { ReactNode, use, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTasks, VALID_TRANSITIONS } from '@/context/TasksContext'
+import { usePresence } from '@/context/PresenceContext'
 import PriorityBadge from '@/components/ui/PriorityBadge'
 import StateChip     from '@/components/ui/StateChip'
 import TaskFormModal from '@/components/tasks/TaskFormModal'
@@ -18,15 +19,25 @@ const STATE_ORDER: TaskState[] = ['todo', 'in_progress', 'done']
 
 interface Props { params: Promise<{ id: string }> }
 
-export default function TaskDetailPage({ params }: Props) {
-  const { id } = use(params)
+// Exported so tests can render it directly without the async-params wrapper.
+export function TaskDetailContent({ id }: { id: string }) {
   const router = useRouter()
-  const { tasks, users, updateTask, deleteTask, setTaskState } = useTasks()
+  const { tasks, users, currentUser, updateTask, deleteTask, setTaskState, lastCompletion } = useTasks()
+  const { setViewingTask, viewingByUser } = usePresence()
 
-  const task = tasks.find(t => t.id === id)
+  // FD-06: tell the server this user is looking at this task. Clears on leave.
+  useEffect(() => {
+    setViewingTask(id)
+    return () => { setViewingTask(null) }
+  }, [id, setViewingTask])
+
+  const partner = users.find(u => u.id !== currentUser?.id)
+  const partnerViewingThis = !!partner && viewingByUser[partner.id] === id
 
   const [editOpen,   setEditOpen]   = useState<boolean>(false)
   const [deleteOpen, setDeleteOpen] = useState<boolean>(false)
+
+  const task = tasks.find(t => t.id === id)
 
   if (!task) {
     return (
@@ -79,9 +90,26 @@ export default function TaskDetailPage({ params }: Props) {
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-9">
           <div className="flex items-center gap-3 mb-5 flex-wrap">
             <PriorityBadge priority={task.priority} />
-            <StateChip state={task.state} />
+            <span
+              className={`rounded-full motion-safe:transition-[transform] ${lastCompletion?.taskId === task.id ? 'chip-scale-flash' : ''}`}
+              data-testid="detail-chip"
+            >
+              <StateChip state={task.state} />
+            </span>
             {isOverdue && <span className="text-xs text-red-600 font-semibold">⚠ Overdue</span>}
           </div>
+
+          {/* FD-06: quiet co-presence nudge — shown only when the partner is
+              simultaneously on this same task page. Screen reader reads the text. */}
+          {partnerViewingThis && (
+            <p
+              className="flex items-center gap-1.5 text-xs text-gray-400 mb-3 bubble-enter"
+              aria-label={`${partner!.name} is looking at this too`}
+            >
+              <span className="w-2 h-2 rounded-full bg-success presence-dot-online" aria-hidden="true" />
+              {partner!.name} is looking at this too
+            </p>
+          )}
 
           <h1 className="font-display text-2xl font-bold text-gray-700 mb-4">{task.title}</h1>
 
@@ -91,7 +119,7 @@ export default function TaskDetailPage({ params }: Props) {
             </div>
           )}
 
-          <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-4 flex items-center gap-2">
+          <p className="text-xs font-semibold text-gray-500 mb-4 flex items-center gap-2">
             State Flow
             <span className="flex-1 h-px bg-gray-100" />
           </p>
@@ -131,7 +159,7 @@ export default function TaskDetailPage({ params }: Props) {
             )}
           </div>
 
-          <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-4 flex items-center gap-2">
+          <p className="text-xs font-semibold text-gray-500 mb-4 flex items-center gap-2">
             Actions
             <span className="flex-1 h-px bg-gray-100" />
           </p>
@@ -144,15 +172,21 @@ export default function TaskDetailPage({ params }: Props) {
                                                 <ActionBtn color="red"     onClick={() => setDeleteOpen(true)}>🗑 Delete</ActionBtn>
           </div>
 
-          <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-4 flex items-center gap-2">
+          <p className="text-xs font-semibold text-gray-500 mb-4 flex items-center gap-2">
             Activity
             <span className="flex-1 h-px bg-gray-100" />
           </p>
 
           <div className="space-y-3">
-            <ActivityItem user={createdBy} action="created this task" time={task.createdAt} />
+            <ActivityItem
+              user={createdBy} action="created this task" time={task.createdAt}
+              displayName={createdBy?.id === currentUser?.id ? 'You' : createdBy?.name}
+            />
             {new Date(task.createdAt).getTime() !== new Date(task.updatedAt).getTime() && (
-              <ActivityItem user={assignee} action="last updated this task" time={task.updatedAt} />
+              <ActivityItem
+                user={assignee} action="last updated this task" time={task.updatedAt}
+                displayName={assignee?.id === currentUser?.id ? 'You' : assignee?.name}
+              />
             )}
           </div>
 
@@ -162,16 +196,18 @@ export default function TaskDetailPage({ params }: Props) {
 
         <div className="space-y-4">
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-            <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-4">Task Details</p>
+            <p className="text-xs font-semibold text-gray-500 mb-4">Task Details</p>
             <DetailRow label="Assigned to">
               <div className="flex items-center gap-2">
                 {assignee && (
                   <div className="w-5 h-5 rounded-full flex items-center justify-center text-white flex-shrink-0"
-                    style={{ background: assignee.avatarColor, fontSize: 8 }}>
+                    style={{ background: assignee.avatarColor, fontSize: 12 }}>
                     {assignee.initials}
                   </div>
                 )}
-                <span className="text-sm text-gray-700 font-medium">{assignee?.name ?? '—'}</span>
+                <span className="text-sm text-gray-700 font-medium">
+                  {task.assigneeId === currentUser?.id ? 'You' : (assignee?.name ?? '—')}
+                </span>
               </div>
             </DetailRow>
             <DetailRow label="Due Date">
@@ -186,7 +222,7 @@ export default function TaskDetailPage({ params }: Props) {
 
           {!isTerminal && (
             <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-              <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-3">Re-assign</p>
+              <p className="text-xs font-semibold text-gray-500 mb-3">Re-assign</p>
               <p className="text-xs text-gray-500 mb-3">Transfer this task to your partner</p>
               {users.filter(u => u.id !== task.assigneeId).map(u => (
                 <button
@@ -195,7 +231,7 @@ export default function TaskDetailPage({ params }: Props) {
                   className="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-lg border border-gray-200 hover:border-crimson text-sm text-gray-700 transition-colors"
                 >
                   <div className="w-6 h-6 rounded-full flex items-center justify-center text-white flex-shrink-0"
-                    style={{ background: u.avatarColor, fontSize: 9 }}>
+                    style={{ background: u.avatarColor, fontSize: 12 }}>
                     {u.initials}
                   </div>
                   Assign to {u.name}
@@ -273,18 +309,18 @@ function DetailRow({ label, children }: DetailRowProps) {
   )
 }
 
-interface ActivityItemProps { user: User | undefined; action: string; time: Date | string | undefined }
-function ActivityItem({ user, action, time }: ActivityItemProps) {
+interface ActivityItemProps { user: User | undefined; action: string; time: Date | string | undefined; displayName?: string }
+function ActivityItem({ user, action, time, displayName }: ActivityItemProps) {
   if (!user) return null
   return (
     <div className="flex items-start gap-3">
       <div className="w-7 h-7 rounded-full flex items-center justify-center text-white flex-shrink-0 mt-0.5"
-        style={{ background: user.avatarColor, fontSize: 9 }}>
+        style={{ background: user.avatarColor, fontSize: 12 }}>
         {user.initials}
       </div>
       <div>
         <p className="text-sm text-gray-500">
-          <span className="font-semibold text-gray-700">{user.name}</span> {action}
+          <span className="font-semibold text-gray-700">{displayName ?? user.name}</span> {action}
         </p>
         <p className="text-xs text-gray-500">
           {time ? new Date(time).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
@@ -292,4 +328,9 @@ function ActivityItem({ user, action, time }: ActivityItemProps) {
       </div>
     </div>
   )
+}
+
+export default function TaskDetailPage({ params }: Props) {
+  const { id } = use(params)
+  return <TaskDetailContent id={id} />
 }

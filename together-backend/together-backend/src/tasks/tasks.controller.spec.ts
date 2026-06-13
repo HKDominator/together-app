@@ -1,9 +1,13 @@
 // Destination: together-backend/together-backend/src/tasks/tasks.controller.spec.ts
-// REPLACE — service mocks now return Promises.
+// REPLACE — override guards (AuthGuard deps aren't available in unit tests),
+// and pass req.user for the identity-wire create() call.
 import { Test, TestingModule } from '@nestjs/testing'
 import { TasksController } from './tasks.controller'
 import { TasksService } from './tasks.service'
+import { AuthGuard } from '../auth/guards/auth.guard'
+import { PermissionsGuard } from '../auth/guards/permissions.guard'
 import { Priority, TaskState } from './entities/task.entity'
+import type { Request } from 'express'
 
 const makeTask = () => ({
   id: 't-1', title: 'Test', description: '',
@@ -11,6 +15,9 @@ const makeTask = () => ({
   priority: Priority.HIGH, state: TaskState.TODO, dueDate: null,
   createdAt: new Date(), updatedAt: new Date(),
 })
+
+const mockReq = (userId = 'u-1') =>
+  ({ user: { id: userId } }) as unknown as Request & { user: { id: string } }
 
 describe('TasksController', () => {
   let controller: TasksController
@@ -29,7 +36,10 @@ describe('TasksController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [TasksController],
       providers:   [{ provide: TasksService, useValue: mock }],
-    }).compile()
+    })
+      .overrideGuard(AuthGuard).useValue({ canActivate: () => true })
+      .overrideGuard(PermissionsGuard).useValue({ canActivate: () => true })
+      .compile()
 
     controller = module.get(TasksController)
     service    = module.get(TasksService) as jest.Mocked<TasksService>
@@ -41,10 +51,17 @@ describe('TasksController', () => {
     expect(await controller.findAll({ page: 1, perPage: 10 })).toBe(page)
   })
 
-  it('POST / delegates to create', async () => {
+  it('POST / passes caller id as creatorId (identity wire)', async () => {
     const t = makeTask()
     service.create.mockResolvedValue(t)
-    const r = await controller.create({ title: 'Test', assigneeId: 'u-1', priority: Priority.HIGH })
+    const r = await controller.create(
+      { title: 'Test', assigneeId: 'u-1', priority: Priority.HIGH },
+      mockReq('caller-id'),
+    )
+    expect(service.create).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Test' }),
+      'caller-id',
+    )
     expect(r).toBe(t)
   })
 

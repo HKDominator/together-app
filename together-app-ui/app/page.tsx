@@ -15,8 +15,7 @@ export default function LandingPage() {
 
       {/* ── Hero ─────────────────────────────────────────── */}
       <section
-        className="relative flex flex-col items-center justify-center min-h-screen px-6 py-24 overflow-hidden"
-        style={{ background: '#2C3E50' }}
+        className="relative flex flex-col items-center justify-center min-h-screen px-6 py-24 overflow-hidden bg-sl"
       >
         <div className="absolute top-[-120px] right-[-160px] w-[520px] h-[520px] rounded-full border border-white/5 pointer-events-none" />
         <div className="absolute bottom-[-60px] left-[-80px] w-[300px] h-[300px] rounded-full pointer-events-none"
@@ -45,15 +44,15 @@ export default function LandingPage() {
         <div className="relative flex flex-wrap gap-4 justify-center">
           <Link
             href="/tasks"
-            className="px-9 py-3.5 rounded-full text-white font-semibold text-sm tracking-wide transition-all hover:-translate-y-0.5"
-            style={{ background: '#C0392B', boxShadow: '0 4px 20px rgba(192,57,43,0.4)' }}
+            className="px-9 py-3.5 rounded-full text-white font-semibold text-sm tracking-wide transition-all hover:-translate-y-0.5 bg-cr"
+            style={{ boxShadow: '0 4px 20px rgba(192,57,43,0.4)' }}
           >
             Open App →
           </Link>
           <Link
             href="/login"
             className="px-9 py-3.5 rounded-full font-medium text-sm text-cm transition-all"
-            style={{ border: '1.5px solid rgba(232,213,183,0.35)' }}
+            style={{ border: '1.5px solid rgba(255,255,255,0.35)' }}
           >
             Sign In
           </Link>
@@ -102,19 +101,18 @@ export default function LandingPage() {
 
       {/* ── Footer ───────────────────────────────────────── */}
       <footer
-        className="px-16 py-12 flex items-center justify-between"
-        style={{ background: '#1A2533' }}
+        className="px-16 py-12 flex items-center justify-between bg-sl"
       >
         <div>
           <div className="font-display text-xl font-bold text-cm">❤️ Together</div>
-          <p className="text-xs mt-1" style={{ color: 'rgba(232,213,183,0.35)' }}>
+          <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
             A private space for couples to plan, organize, and grow.
           </p>
         </div>
         <Link
           href="/login"
-          className="px-8 py-3 rounded-full text-white font-semibold text-sm transition-all hover:-translate-y-0.5"
-          style={{ background: '#C0392B', boxShadow: '0 4px 16px rgba(192,57,43,0.3)' }}
+          className="px-8 py-3 rounded-full text-white font-semibold text-sm transition-all hover:-translate-y-0.5 bg-cr"
+          style={{ boxShadow: '0 4px 16px rgba(192,57,43,0.3)' }}
         >
           Get Started Free →
         </Link>

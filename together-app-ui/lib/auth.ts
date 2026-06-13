@@ -1,7 +1,7 @@
 // Destination: together-app-ui/lib/auth.ts
 // REPLACE — supports the multi-step login flow, registration, refresh,
 // session management, and recovery.
-import { API_URL } from './api'
+import { API_URL, NetworkError } from './api'
 
 export interface AuthUser {
   id: string; email: string; name: string; role: string
@@ -24,11 +24,14 @@ export type LoginStage =
   | { stage: 'done'; result: AuthResult }
 
 async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
-    ...init,
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...(init.headers ?? {}) },
-  })
+  let res: Response
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      ...init,
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', ...(init.headers ?? {}) },
+    })
+  } catch { throw new NetworkError() }
   if (!res.ok) {
     let msg = res.statusText
     try { const b = await res.json(); msg = b.message ?? msg } catch {}

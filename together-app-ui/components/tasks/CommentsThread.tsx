@@ -12,15 +12,17 @@
 'use client'
 import { useCallback, useEffect, useState, KeyboardEvent } from 'react'
 import { api, isNetworkError } from '@/lib/api'
+import { getSocket } from '@/lib/ws'
 import { useTasks } from '@/context/TasksContext'
+import { useAuth } from '@/context/AuthContext'
 import type { Comment } from '@/types'
 
 interface Props { taskId: string }
 
-const CURRENT_USER_ID = 'u1'  // matches the backend's DEFAULT_AUTHOR
-
 export default function CommentsThread({ taskId }: Props) {
   const { users } = useTasks()
+  const { user: authUser } = useAuth()
+  const currentUserId = authUser?.id ?? ''
   const [comments, setComments] = useState<Comment[]>([])
   const [draft,    setDraft]    = useState('')
   const [loading,  setLoading]  = useState(true)
@@ -45,6 +47,31 @@ export default function CommentsThread({ taskId }: Props) {
     return () => { cancelled = true }
   }, [taskId])
 
+  // ── Realtime WS subscription (BUG-33) ─────────────────────────
+  useEffect(() => {
+    const sock = getSocket()
+    const onCreated = (c: Comment) => {
+      if (c.taskId !== taskId) return
+      setComments(prev => prev.some(x => x.id === c.id) ? prev : [...prev, c])
+    }
+    const onUpdated = (c: Comment) => {
+      if (c.taskId !== taskId) return
+      setComments(prev => prev.map(x => x.id === c.id ? c : x))
+    }
+    const onDeleted = ({ id, taskId: tId }: { id: string; taskId: string }) => {
+      if (tId !== taskId) return
+      setComments(prev => prev.filter(x => x.id !== id))
+    }
+    sock.on('comment:created', onCreated)
+    sock.on('comment:updated', onUpdated)
+    sock.on('comment:deleted', onDeleted)
+    return () => {
+      sock.off('comment:created', onCreated)
+      sock.off('comment:updated', onUpdated)
+      sock.off('comment:deleted', onDeleted)
+    }
+  }, [taskId])
+
   // ── Add ────────────────────────────────────────────────────────
   async function handleAdd() {
     const body = draft.trim()
@@ -55,7 +82,7 @@ export default function CommentsThread({ taskId }: Props) {
     const tempId = `tmp_${Date.now()}`
     const nowIso = new Date().toISOString()
     const optimistic: Comment = {
-      id: tempId, taskId, authorId: CURRENT_USER_ID, body,
+      id: tempId, taskId, authorId: currentUserId, body,
       createdAt: nowIso, updatedAt: nowIso,
     }
     setComments(prev => [...prev, optimistic])
@@ -122,9 +149,9 @@ export default function CommentsThread({ taskId }: Props) {
 
   return (
     <div className="mt-8">
-      <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-4 flex items-center gap-2">
+      <p className="text-xs font-semibold text-gray-500 mb-4 flex items-center gap-2">
         Conversation
-        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-cr-pale text-cr text-[10px] font-bold">
+        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-cr-pale text-cr text-xs font-bold">
           {comments.length}
         </span>
         <span className="flex-1 h-px bg-gray-100" />
@@ -140,8 +167,8 @@ export default function CommentsThread({ taskId }: Props) {
       <div className="flex flex-col gap-4 mb-5">
         {comments.map(c => {
           const u = findUser(c.authorId)
-          const isMe = c.authorId === CURRENT_USER_ID
-          const isEdited = c.updatedAt !== c.createdAt
+          const isMe = c.authorId === currentUserId
+          const isEdited = new Date(c.updatedAt).getTime() !== new Date(c.createdAt).getTime()
           return (
             <div key={c.id} className="flex items-start gap-3 group">
               {u && (
@@ -154,7 +181,7 @@ export default function CommentsThread({ taskId }: Props) {
               )}
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-2 mb-1">
-                  <span className="text-sm font-semibold text-gray-700">{u?.name ?? 'Unknown'}</span>
+                  <span className="text-sm font-semibold text-gray-700">{isMe ? 'You' : (u?.name ?? 'Unknown')}</span>
                   <span className="text-xs text-gray-400">{fmtDate(c.createdAt)}</span>
                   {isEdited && <span className="text-xs text-gray-400 italic">· edited</span>}
                 </div>
@@ -172,7 +199,6 @@ export default function CommentsThread({ taskId }: Props) {
                       <button
                         onClick={handleSaveEdit}
                         className="px-3 py-1.5 rounded-md bg-cr text-white font-semibold hover:opacity-90"
-                        style={{ background: '#C0392B' }}
                       >
                         Save
                       </button>
@@ -196,12 +222,12 @@ export default function CommentsThread({ taskId }: Props) {
                   <button
                     onClick={() => setEditing({ id: c.id, body: c.body })}
                     className="p-1.5 text-xs rounded-md text-gray-400 hover:text-cr hover:bg-cr-pale"
-                    title="Edit"
+                    aria-label="Edit comment"
                   >✎</button>
                   <button
                     onClick={() => handleDelete(c.id)}
                     className="p-1.5 text-xs rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50"
-                    title="Delete"
+                    aria-label="Delete comment"
                   >🗑</button>
                 </div>
               )}
@@ -226,8 +252,8 @@ export default function CommentsThread({ taskId }: Props) {
           <button
             onClick={handleAdd}
             disabled={!draft.trim()}
-            className="px-4 py-2 rounded-lg text-white text-sm font-semibold transition-all hover:-translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{ background: '#C0392B', boxShadow: '0 3px 12px rgba(192,57,43,0.3)' }}
+            className="px-4 py-2 rounded-lg text-white text-sm font-semibold transition-all hover:-translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed bg-cr"
+            style={{ boxShadow: '0 3px 12px rgba(192,57,43,0.3)' }}
           >
             Send →
           </button>

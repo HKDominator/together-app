@@ -10,17 +10,41 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* ── Brand tokens (DESIGN.md §2) ──────────────────────────────── */
+  --color-cr: #C0392B;
+  --color-cr-deep: #9B2D22;
+  --color-cr-pale: #FAF0EE;
+  --color-sl: #1A2535;
+  --color-sl-muted: #4D6A80;
+  --color-sl-dim: #8FA5B8;
+  --color-cm: #F2EAE3;
+  --color-cm-pale: #FAF8F6;
+  --color-surface: #FFFFFF;
+  --color-bg: #F5F5F4;
+  --color-success: #27AE60;
+  --color-success-pale: #DCFCE7;
+  --color-info: #2980B9;
+  --color-info-pale: #DBEAFE;
+  --color-warning: #E67E22;
+  --color-warning-pale: #FEF3C6;
+  --color-danger: #DC2626;
+  --color-danger-pale: #FFE2E2;
+  --font-display: var(--font-geist-sans);
 }
 
+/* ── Page entrance ────────────────────────────────────────────────── */
+/* Opacity-only — navigation is high-frequency, movement reads as lag. */
 @keyframes pageFadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 .page-enter {
-  animation: pageFadeIn 0.35s ease forwards;
+  animation: pageFadeIn 0.15s ease-out forwards;
 }
 
+/* ── Task row stagger ─────────────────────────────────────────────── */
 @keyframes rowFadeIn {
   from { opacity: 0; transform: translateX(-8px); }
   to   { opacity: 1; transform: translateX(0); }
@@ -40,16 +64,17 @@
 .row-animate:nth-child(7)  { animation-delay: 0.24s; }
 .row-animate:nth-child(8)  { animation-delay: 0.28s; }
 
-
+/* ── Modal entrance (ease-out-expo, no bounce) ────────────────────── */
 @keyframes modalSlideUp {
   from { opacity: 0; transform: scale(0.95) translateY(16px); }
   to   { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 .modal-enter {
-  animation: modalSlideUp 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation: modalSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* ── Backdrop ─────────────────────────────────────────────────────── */
 @keyframes backdropFade {
   from { opacity: 0; }
   to   { opacity: 1; }
@@ -59,14 +84,129 @@
   animation: backdropFade 0.2s ease forwards;
 }
 
-@keyframes statPop {
-  0%   { transform: scale(1); }
-  50%  { transform: scale(1.04); }
-  100% { transform: scale(1); }
+/* ── Pulse state transition (b/c copy lines) ─────────────────────────── */
+@keyframes pulseStateIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-.stat-pop {
-  animation: statPop 0.4s ease forwards;
+.pulse-state-in {
+  animation: pulseStateIn 260ms ease-out forwards;
+}
+
+/* ── Pulse c→d Reading reveal: the once-a-day relational payoff ──────── */
+/* Richer than pulse-state-in: scale + translateY + blur bridge the swap. */
+@keyframes pulseReadingIn {
+  from { opacity: 0; transform: scale(0.98) translateY(8px); filter: blur(2px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0);   filter: blur(0);   }
+}
+
+.pulse-reading-in {
+  animation: pulseReadingIn 340ms cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+/* Suggestion arrives 70ms after the label — stagger makes the reveal feel staged. */
+.pulse-reading-suggestion {
+  animation: pulseReadingIn 340ms cubic-bezier(0.23, 1, 0.32, 1) 70ms both;
+}
+
+/* ── Completion flash: warm row wash (180ms in / 450ms out) ─────────── */
+/* Partner-online-only moment. Bloom arrives fast; warmth lingers. */
+@keyframes rowFlash {
+  0%   { background-color: transparent; }
+  20%  { background-color: rgba(192, 57, 43, 0.07); }
+  100% { background-color: transparent; }
+}
+.row-flash-active {
+  animation: rowFlash 600ms ease-out forwards;
+}
+
+/* ── Completion flash: chip scale pulse (350ms strong ease-out) ─────── */
+@keyframes chipScaleFlash {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+.chip-scale-flash {
+  animation: chipScaleFlash 350ms cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+/* ── Partner "viewing this" bubble enter (200ms ease-out) ───────────── */
+/* scale 0.8→1 + opacity 0→1. Exit is instant (conditional unmount). */
+@keyframes bubbleEnter {
+  from { opacity: 0; transform: scale(0.8); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.bubble-enter {
+  animation: bubbleEnter 200ms cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+/* ── Synchronized Breathing field (ADR-0004 Addendum A) ─────────────
+   Idle: a single warm orb breathing subtly (scale amp ±3.5% ≤ ±4%, 7s ≥ 6s).
+   Partner connects: a second orb slides in from the side, the two breathe in
+   counter-phase, then draw together into a phase-locked, overlapping union.
+   The strong, visible signal is *positional* (slide-in + converge) — a one-time
+   presence transition, NOT raised-amplitude ambient breath, so the amplitude
+   ceiling is untouched. Palette: warm-sand neutrals only (soft radial fill for
+   a lit-orb read, never a saturated gradient). Reduced motion strips kinetics. */
+
+@keyframes pulseBreathe {
+  0%, 100% { transform: scale(0.965); }
+  50%       { transform: scale(1.035); }
+}
+
+/* The orb — a soft, defined sphere (not a flat blur smudge). Warm-sand radial,
+   deepened from cm so it reads against the stone-100 page. */
+.breath-orb {
+  width: 7rem;            /* 112px */
+  height: 7rem;
+  border-radius: 9999px;
+  filter: blur(10px);     /* soft edge, still a defined disc */
+  opacity: 0.9;
+}
+.breath-orb-you     { background: radial-gradient(circle at 38% 34%, #F1E5D7, #DEC9AF); }
+.breath-orb-partner { background: radial-gradient(circle at 38% 34%, #F6EEE3, #E9DAC8); }
+
+.breath-orb-anim { animation: pulseBreathe 7s ease-in-out infinite; }
+
+/* Slot = position layer (kept separate from the orb's scale so the two
+   transforms never fight). "You" drifts aside to make room; the partner orb
+   arrives from the side and settles into an overlapping union. */
+.breath-slot {
+  position: absolute;
+  transition: transform 900ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.breath-slot-you            { transform: translateX(0); }
+.breath-slot-you.is-paired  { transform: translateX(-2rem); }
+
+@keyframes partnerArrive {
+  from { transform: translateX(6rem); opacity: 0; }
+  to   { transform: translateX(2rem); opacity: 1; }
+}
+.breath-slot-partner {
+  transform: translateX(2rem);   /* resting (overlapping union with "you") */
+  animation: partnerArrive 900ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* State (d): the field recedes to a low-opacity halo behind the Reading card
+   so the once-a-day payoff stays the hero (Addendum A §"It recedes in (d)"). */
+.breath-recede {
+  opacity: 0.35;
+  z-index: -1;
+  transition: opacity 340ms ease;
+}
+
+/* ── Dual-presence dot pulse (DESIGN.md §5) ──────────────────────── */
+/* Used in Wave 4 when dual-presence ships. Signal is also carried by
+   color (green vs gray), so dropping the animation under reduced-motion
+   is safe — presence is still communicated visually. */
+@keyframes presencePulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
+}
+
+.presence-dot-online {
+  animation: presencePulse 2s ease-in-out infinite;
 }
 
 /* ── Sidebar nav active indicator slide ───────────────────────────── */
@@ -90,24 +230,59 @@ input:focus, select:focus, textarea:focus {
 }
 .card-hover:hover {
   transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(44,62,80,0.12);
+  box-shadow: 0 8px 24px rgba(26,37,51,0.12);
 }
 
 /* ── Scrollbar ────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(44,62,80,0.15); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(44,62,80,0.25); }
+::-webkit-scrollbar-thumb { background: rgba(26,37,51,0.15); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(26,37,51,0.25); }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* ── Reduced motion (AUD-09, DESIGN.md §6 "Do") ──────────────────── */
+/* "Fewer and gentler, not zero." Strip transform-based animations per
+   class; keep a gentle 150ms opacity fade so relational state changes
+   still read as transitions rather than hard snaps. */
+@media (prefers-reduced-motion: reduce) {
+  /* Strip all keyframe-driven motion classes */
+  .page-enter,
+  .row-animate,
+  .modal-enter,
+  .pulse-state-in,
+  .pulse-reading-in,
+  .pulse-reading-suggestion,
+  .row-flash-active,
+  .chip-scale-flash,
+  .bubble-enter {
+    animation: none;
+    opacity: 1;
+    transform: none;
+    filter: none;
+    /* Preserve a gentle opacity crossfade for state changes */
+    transition: opacity 150ms ease, background-color 150ms ease;
+  }
+
+  /* Breathing field: static orbs at rest. Partner-present is still shown by
+     the second orb's presence and resting position — geometry, not motion.
+     (The slot keeps its resting transform; only the kinetics are stripped.) */
+  .breath-orb-anim {
+    animation: none;
+    transform: scale(1);
+  }
+  .breath-slot,
+  .breath-slot-partner {
+    animation: none;
+    transition: none;
+  }
+
+  /* Presence pulse: static dot. Color carries the online/offline signal. */
+  .presence-dot-online {
+    animation: none;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
 }

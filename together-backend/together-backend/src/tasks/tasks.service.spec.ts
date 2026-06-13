@@ -1,7 +1,7 @@
 // Destination: together-backend/together-backend/src/tasks/tasks.service.spec.ts
 // REPLACE the existing file.
 import { Test, TestingModule } from '@nestjs/testing'
-import { BadRequestException, NotFoundException } from '@nestjs/common'
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common'
 import { TasksService } from './tasks.service'
 import { TasksRepository } from './tasks.repository'
 import { UsersService } from '../users/users.service'
@@ -37,14 +37,16 @@ describe('TasksService (unit, mocked repos)', () => {
 
   beforeEach(async () => {
     const repoMock = {
-      findAll:        jest.fn(),
-      findFiltered:   jest.fn(),
-      findById:       jest.fn(),
-      insert:         jest.fn(),
-      update:         jest.fn(),
-      remove:         jest.fn(),
-      clear:          jest.fn(),
-      count:          jest.fn(),
+      findAll:           jest.fn(),
+      findFiltered:      jest.fn(),
+      findById:          jest.fn(),
+      findByIds:         jest.fn(),
+      insert:            jest.fn(),
+      update:            jest.fn(),
+      setStateIfCurrent: jest.fn(),
+      remove:            jest.fn(),
+      clear:             jest.fn(),
+      count:             jest.fn(),
     } as unknown as jest.Mocked<TasksRepository>
 
     const usersMock = {
@@ -55,8 +57,8 @@ describe('TasksService (unit, mocked repos)', () => {
 
     const usersRepoMock = {
       findAll:     jest.fn().mockResolvedValue([
-        { id: 'u-1', name: 'Ana', role: 'owner',   email: 'a@x', passwordHash: '', avatarColor: '#000', initials: 'A', createdAt: new Date() },
-        { id: 'u-2', name: 'Dan', role: 'partner', email: 'd@x', passwordHash: '', avatarColor: '#000', initials: 'D', createdAt: new Date() },
+        { id: 'u-1', name: 'Ana', coupleRole: 'owner',   email: 'a@x', passwordHash: '', avatarColor: '#000', initials: 'A', createdAt: new Date() },
+        { id: 'u-2', name: 'Dan', coupleRole: 'partner', email: 'd@x', passwordHash: '', avatarColor: '#000', initials: 'D', createdAt: new Date() },
       ]),
       findById:    jest.fn(),
       findByEmail: jest.fn(),
@@ -88,26 +90,43 @@ describe('TasksService (unit, mocked repos)', () => {
 
     it('rejects an unknown assignee', async () => {
       users.exists.mockResolvedValue(false)
-      await expect(service.create(makeDto({ assigneeId: 'ghost' })))
+      await expect(service.create(makeDto({ assigneeId: 'ghost' }), 'u-1'))
         .rejects.toBeInstanceOf(BadRequestException)
     })
 
     it('rejects a past due date', async () => {
-      await expect(service.create(makeDto({ dueDate: '2000-01-01' })))
+      await expect(service.create(makeDto({ dueDate: '2000-01-01' }), 'u-1'))
         .rejects.toBeInstanceOf(BadRequestException)
     })
 
     it('accepts a future due date', async () => {
-      const t = await service.create(makeDto({ dueDate: FUTURE }))
+      const t = await service.create(makeDto({ dueDate: FUTURE }), 'u-1')
       expect(repo.insert).toHaveBeenCalledWith(expect.objectContaining({ dueDate: FUTURE }))
       expect(t.dueDate).toBe(FUTURE)
     })
 
     it('trims title and description', async () => {
-      await service.create(makeDto({ title: '  padded  ', description: '  note  ' }))
+      await service.create(makeDto({ title: '  padded  ', description: '  note  ' }), 'u-1')
       expect(repo.insert).toHaveBeenCalledWith(expect.objectContaining({
         title: 'padded', description: 'note',
       }))
+    })
+
+    // ── BUG-02 / identity wire ─────────────────────────────────────
+    // create() must record the caller's id as createdById — not the
+    // first 'owner' from resolveDefaultCreator().
+    it('uses the caller id as createdById, not the first owner', async () => {
+      await service.create(makeDto(), 'caller-uuid')
+      expect(repo.insert).toHaveBeenCalledWith(
+        expect.objectContaining({ createdById: 'caller-uuid' }),
+      )
+    })
+
+    it('existing tests still pass when creatorId matches the old default', async () => {
+      await service.create(makeDto(), 'u-1')
+      expect(repo.insert).toHaveBeenCalledWith(
+        expect.objectContaining({ createdById: 'u-1' }),
+      )
     })
   })
 
@@ -139,13 +158,33 @@ describe('TasksService (unit, mocked repos)', () => {
       await expect(service.update('t-1', { assigneeId: 'ghost' }))
         .rejects.toBeInstanceOf(BadRequestException)
     })
+
+    // BUG-04: update() was missing the past-due-date guard that create() has
+    it('rejects a past due date (BUG-04)', async () => {
+      repo.findById.mockResolvedValue(makeTask())
+      await expect(service.update('t-1', { dueDate: '2000-01-01' }))
+        .rejects.toBeInstanceOf(BadRequestException)
+    })
+
+    // BUG-05: today's local-date string must never be rejected as "in the past"
+    it('accepts today as a valid due date (BUG-05: no UTC/local mismatch)', async () => {
+      const today = new Date()
+      const todayStr = [
+        today.getFullYear(),
+        String(today.getMonth() + 1).padStart(2, '0'),
+        String(today.getDate()).padStart(2, '0'),
+      ].join('-')
+      repo.findById.mockResolvedValue(makeTask())
+      repo.update.mockImplementation(async (_id, patch) => makeTask(patch as Partial<Task>))
+      await expect(service.update('t-1', { dueDate: todayStr })).resolves.toBeDefined()
+    })
   })
 
   // ── setState (state machine) ──────────────────────────────────
   describe('setState()', () => {
     it('allows todo → in_progress', async () => {
       repo.findById.mockResolvedValue(makeTask({ state: TaskState.TODO }))
-      repo.update.mockResolvedValue(makeTask({ state: TaskState.IN_PROGRESS }))
+      repo.setStateIfCurrent.mockResolvedValue(makeTask({ state: TaskState.IN_PROGRESS }))
       const r = await service.setState('t-1', TaskState.IN_PROGRESS)
       expect(r.state).toBe(TaskState.IN_PROGRESS)
     })
@@ -160,6 +199,16 @@ describe('TasksService (unit, mocked repos)', () => {
       repo.findById.mockResolvedValue(makeTask({ state: TaskState.DONE }))
       await expect(service.setState('t-1', TaskState.TODO))
         .rejects.toBeInstanceOf(BadRequestException)
+    })
+
+    // BUG-08: concurrent transition races must produce a ConflictException,
+    // not silently overwrite — setStateIfCurrent returns null when the DB row
+    // no longer has the expected state (another request already changed it).
+    it('throws ConflictException when the state changed concurrently (BUG-08)', async () => {
+      repo.findById.mockResolvedValue(makeTask({ state: TaskState.TODO }))
+      repo.setStateIfCurrent.mockResolvedValue(null)   // row changed since we read it
+      await expect(service.setState('t-1', TaskState.IN_PROGRESS))
+        .rejects.toBeInstanceOf(ConflictException)
     })
   })
 

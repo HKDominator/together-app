@@ -1,6 +1,3 @@
-// Destination: together-app-ui/app/login/page.tsx
-// REPLACE — multi-step: password → OTP → PIN. The page re-uses the
-// existing FormInput component and the same visual treatment.
 'use client'
 import { useState, FormEvent, ChangeEvent } from 'react'
 import { useRouter } from 'next/navigation'
@@ -9,6 +6,56 @@ import FormInput from '@/components/ui/FormInput'
 import { useAuth } from '@/context/AuthContext'
 
 type Step = 'password' | 'otp' | 'pin'
+
+const STEPS: { key: Step; label: string }[] = [
+  { key: 'password', label: 'Password' },
+  { key: 'otp',      label: 'Verify'   },
+  { key: 'pin',      label: 'PIN'      },
+]
+
+function StepProgress({ current }: { current: Step }) {
+  const idx = STEPS.findIndex(s => s.key === current)
+  return (
+    <nav aria-label="Sign-in steps" className="mb-8">
+      <ol className="flex items-center gap-0">
+        {STEPS.map((s, i) => {
+          const isCurrent = i === idx
+          const isDone    = i < idx
+          return (
+            <li
+              key={s.key}
+              aria-label={`Step ${i + 1} of 3`}
+              aria-current={isCurrent ? 'step' : undefined}
+              className="flex items-center"
+            >
+              <div className={[
+                'w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold',
+                'motion-safe:transition-colors motion-safe:duration-200',
+                isCurrent ? 'bg-cr text-white' :
+                isDone    ? 'bg-success text-white' :
+                            'bg-bg text-sl-muted',
+              ].join(' ')}>
+                {isDone ? '✓' : i + 1}
+              </div>
+              <span className={`ml-1.5 text-xs font-medium hidden sm:inline ${
+                isCurrent ? 'text-sl' : 'text-sl-muted'
+              }`}>
+                {s.label}
+              </span>
+              {i < STEPS.length - 1 && (
+                <div className={[
+                  'mx-3 h-0.5 w-8 rounded',
+                  'motion-safe:transition-colors motion-safe:duration-200',
+                  isDone ? 'bg-success' : 'bg-gray-200',
+                ].join(' ')} />
+              )}
+            </li>
+          )
+        })}
+      </ol>
+    </nav>
+  )
+}
 
 export default function LoginPage() {
   const router    = useRouter()
@@ -69,12 +116,12 @@ export default function LoginPage() {
       <div className="bg-gradient-to-br from-rose-50 to-amber-50 hidden md:flex items-center justify-center" />
       <div className="flex items-center justify-center px-8 py-20">
         <div className="w-full max-w-md">
-          <h3 className="font-display text-3xl font-bold mb-1">Welcome back ❤️</h3>
-          <p className="text-sm text-gray-500 mb-6">Sign in to your shared workspace</p>
+          <h1 className="font-display text-3xl font-bold mb-1">Welcome back</h1>
+          <p className="text-sm text-gray-500 mb-6">Sign in to your account</p>
 
-          {/* SEC-07: the seeded demo credentials (real admin account + PIN) were
-              printed here and shipped in the client bundle — removed so they are
-              no longer handed to every visitor. */}
+          <StepProgress current={step} />
+
+          {/* SEC-07: demo credentials removed from client bundle */}
 
           {error && (
             <div className="mb-4 p-3 rounded-lg bg-red-50 text-sm text-red-700">{error}</div>
@@ -89,8 +136,7 @@ export default function LoginPage() {
                 value={password} onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                 placeholder="••••••••" error="" />
               <button type="submit" disabled={loading}
-                className="w-full py-3 rounded-lg text-white text-sm font-semibold disabled:opacity-70"
-                style={{ background: '#C0392B' }}>
+                className="w-full py-3 rounded-lg text-white text-sm font-semibold disabled:opacity-70 bg-cr">
                 {loading ? 'Signing in…' : 'Continue →'}
               </button>
               <div className="text-center text-xs text-gray-500 mt-1">
@@ -117,8 +163,7 @@ export default function LoginPage() {
                 value={otp} onChange={(e: ChangeEvent<HTMLInputElement>) => setOtp(e.target.value)}
                 placeholder="123456" error="" />
               <button type="submit" disabled={loading}
-                className="w-full py-3 rounded-lg text-white text-sm font-semibold disabled:opacity-70"
-                style={{ background: '#C0392B' }}>
+                className="w-full py-3 rounded-lg text-white text-sm font-semibold disabled:opacity-70 bg-cr">
                 {loading ? 'Verifying…' : 'Verify →'}
               </button>
               <button type="button" onClick={() => setStep('password')}
@@ -129,16 +174,17 @@ export default function LoginPage() {
           {step === 'pin' && (
             <form onSubmit={handlePin} className="flex flex-col gap-4">
               <p className="text-sm text-gray-600">
-                Final step — enter your security PIN.
+                One more step — enter your security PIN.
               </p>
               <FormInput label="Security PIN" id="pin" name="pin" type="password"
                 value={pin} onChange={(e: ChangeEvent<HTMLInputElement>) => setPin(e.target.value)}
                 placeholder="••••" error="" />
               <button type="submit" disabled={loading}
-                className="w-full py-3 rounded-lg text-white text-sm font-semibold disabled:opacity-70"
-                style={{ background: '#C0392B' }}>
+                className="w-full py-3 rounded-lg text-white text-sm font-semibold disabled:opacity-70 bg-cr">
                 {loading ? 'Signing in…' : 'Sign in →'}
               </button>
+              <button type="button" onClick={() => setStep('otp')}
+                className="text-xs text-gray-500 hover:text-gray-700">← Back</button>
             </form>
           )}
         </div>

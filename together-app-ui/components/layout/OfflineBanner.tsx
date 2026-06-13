@@ -31,8 +31,7 @@ export default function OfflineBanner() {
 
   if (!isOnline) {
     return (
-      <div className="w-full px-4 py-2 flex items-center gap-2 text-xs font-medium"
-        style={{ background: '#FEF3C7', color: '#92400E', borderBottom: '1px solid #FDE68A' }}>
+      <div className="w-full px-4 py-2 flex items-center gap-2 text-xs font-medium bg-warning-pale text-warning border-b border-warning/20">
         <span>⚠</span>
         <span>
           You&apos;re offline. Changes are being saved locally
@@ -44,9 +43,8 @@ export default function OfflineBanner() {
   }
 
   return (
-    <div className="w-full px-4 py-2 flex items-center gap-2 text-xs font-medium"
-      style={{ background: '#DBEAFE', color: '#1E40AF', borderBottom: '1px solid #BFDBFE' }}>
-      <span className="inline-block w-2 h-2 rounded-full animate-pulse" style={{ background: '#1E40AF' }} />
+    <div className="w-full px-4 py-2 flex items-center gap-2 text-xs font-medium bg-info-pale text-info border-b border-info/20">
+      <span className="inline-block w-2 h-2 rounded-full animate-pulse bg-info" />
       <span>Syncing {pendingCount} change{pendingCount === 1 ? '' : 's'} to the server…</span>
     </div>
   )

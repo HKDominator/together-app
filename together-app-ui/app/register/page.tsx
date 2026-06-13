@@ -1,5 +1,3 @@
-// Destination: together-app-ui/app/register/page.tsx
-// REPLACE — calls the real /auth/register endpoint, no more fake cookies.
 'use client'
 import { useState, FormEvent, ChangeEvent } from 'react'
 import { useRouter } from 'next/navigation'
@@ -15,9 +13,10 @@ export default function RegisterPage() {
   const [form, setForm] = useState({
     name: '', email: '', password: '', confirm: '', securityPin: '',
   })
-  const [errors, setErrors] = useState<Record<string, string>>({})
-  const [serverError, setServerError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [errors,       setErrors]       = useState<Record<string, string>>({})
+  const [serverError,  setServerError]  = useState<string | null>(null)
+  const [loading,      setLoading]      = useState(false)
+  const [showAdvanced, setShowAdvanced] = useState(false)
 
   function handleChange(e: ChangeEvent<HTMLInputElement>) {
     const { name, value } = e.target
@@ -63,8 +62,8 @@ export default function RegisterPage() {
       <div className="bg-gradient-to-br from-rose-50 to-amber-50 hidden md:block" />
       <div className="flex items-center justify-center px-8 py-20">
         <div className="w-full max-w-md">
-          <h3 className="font-display text-3xl font-bold mb-1">Create your account</h3>
-          <p className="text-sm text-gray-500 mb-6">No credit card needed.</p>
+          <h1 className="font-display text-3xl font-bold mb-1">Create your account</h1>
+          <p className="text-sm text-gray-500 mb-6">Start your shared space together.</p>
 
           {serverError && (
             <div className="mb-4 p-3 rounded-lg bg-red-50 text-sm text-red-700">{serverError}</div>
@@ -79,12 +78,46 @@ export default function RegisterPage() {
               value={form.password} onChange={handleChange} error={errors.password} placeholder="Min. 8 characters" />
             <FormInput label="Confirm Password" id="confirm" name="confirm" type="password"
               value={form.confirm} onChange={handleChange} error={errors.confirm} placeholder="Repeat your password" />
-            <FormInput label="Security PIN (optional — enables 3FA)" id="securityPin" name="securityPin" type="password"
-              value={form.securityPin} onChange={handleChange} error={errors.securityPin} placeholder="4–6 digits" />
+
+            {/* PIN is hidden by default — casual users never see it; power users expand Advanced */}
+            <div className="border border-gray-100 rounded-lg overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setShowAdvanced(v => !v)}
+                aria-expanded={showAdvanced}
+                className="w-full px-4 py-3 flex items-center justify-between text-sm text-gray-600 hover:bg-gray-50 motion-safe:transition-colors"
+              >
+                <span className="font-medium">Advanced</span>
+                <span
+                  className="text-gray-400 text-xs motion-safe:transition-transform motion-safe:duration-150"
+                  style={{ transform: showAdvanced ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                >
+                  ▾
+                </span>
+              </button>
+
+              {showAdvanced && (
+                <div className="px-4 pb-4 pt-1 flex flex-col gap-3 bg-gray-50">
+                  <p className="text-xs text-gray-500">
+                    Add a PIN for extra sign-in security. You&apos;ll enter this 4–6 digit number
+                    each time you sign in, after your password and email code.
+                  </p>
+                  <FormInput
+                    label="Security PIN"
+                    id="securityPin"
+                    name="securityPin"
+                    type="password"
+                    value={form.securityPin}
+                    onChange={handleChange}
+                    error={errors.securityPin}
+                    placeholder="4–6 digits (optional)"
+                  />
+                </div>
+              )}
+            </div>
 
             <button type="submit" disabled={loading}
-              className="w-full py-3 rounded-lg text-white text-sm font-semibold disabled:opacity-70 mt-2"
-              style={{ background: '#C0392B' }}>
+              className="w-full py-3 rounded-lg text-white text-sm font-semibold disabled:opacity-70 mt-2 bg-cr">
               {loading ? 'Creating account…' : 'Create account →'}
             </button>
           </form>

@@ -38,28 +38,37 @@ function signalColor(signal: string): string {
 
 export default function ObservationPage() {
   const { hasPermission, loading } = useAuth()
-  const [items,   setItems]   = useState<Observation[]>([])
-  const [showAll, setShowAll] = useState(false)
-  const [error,   setError]   = useState<string | null>(null)
+  const [items,     setItems]   = useState<Observation[]>([])
+  const [showAll,   setShowAll] = useState(false)
+  const [error,     setError]   = useState<string | null>(null)
+  const [resolveErr,setResolveErr] = useState<string | null>(null)
+  const [paused,    setPaused]  = useState(false)   // CR-10: pause auto-poll
 
   const refresh = useCallback(async () => {
     try {
       const r = await fetch(`${API_URL}/admin/observation${showAll ? '?all=1' : ''}`, { credentials: 'include' })
       if (!r.ok) throw new Error(`HTTP ${r.status}`)
-      setItems(await r.json())
+      setItems(await r.json()); setError(null)
     } catch (e) { setError((e as Error).message) }
   }, [showAll])
 
+  // CR-10: respect the paused flag; add a manual refresh button below
   useEffect(() => {
     if (loading || !hasPermission('observation.view')) return
     refresh()
+    if (paused) return
     const t = setInterval(refresh, 5000)
     return () => clearInterval(t)
-  }, [loading, hasPermission, refresh])
+  }, [loading, hasPermission, refresh, paused])
 
+  // CR-09: surface errors from resolve() instead of swallowing them
   async function resolve(id: string) {
-    await fetch(`${API_URL}/admin/observation/${id}/resolve`, { method: 'PATCH', credentials: 'include' })
-    refresh()
+    try {
+      const r = await fetch(`${API_URL}/admin/observation/${id}/resolve`, { method: 'PATCH', credentials: 'include' })
+      if (!r.ok) throw new Error(`HTTP ${r.status}`)
+      setResolveErr(null)
+      refresh()
+    } catch (e) { setResolveErr(`Could not resolve observation: ${(e as Error).message}`) }
   }
 
   if (loading) return <div className="p-8 text-gray-500">Loading…</div>
@@ -78,13 +87,28 @@ export default function ObservationPage() {
     <div className="p-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="font-display text-2xl font-bold">Admin · Observation list</h1>
-        <label className="flex items-center gap-2 text-sm text-gray-600">
-          <input type="checkbox" checked={showAll} onChange={e => setShowAll(e.target.checked)} />
-          Include resolved
-        </label>
+        <div className="flex items-center gap-4">
+          <label className="flex items-center gap-2 text-sm text-gray-600">
+            <input type="checkbox" checked={showAll} onChange={e => setShowAll(e.target.checked)} />
+            Include resolved
+          </label>
+          {/* CR-10: manual refresh + pause toggle for the 5s auto-poll */}
+          <button onClick={refresh}
+            className="text-xs px-3 py-1.5 rounded bg-gray-100 hover:bg-gray-200 text-gray-700">
+            Refresh
+          </button>
+          <button onClick={() => setPaused(p => !p)}
+            aria-label={paused ? 'Resume auto-refresh' : 'Pause auto-refresh'}
+            className={`text-xs px-3 py-1.5 rounded ${paused ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-700'}`}>
+            {paused ? 'Auto-refresh paused' : 'Pause'}
+          </button>
+        </div>
       </div>
 
-      {error && <div className="p-4 mb-4 rounded bg-red-50 text-red-700 text-sm">{error}</div>}
+      {error      && <div role="alert" className="p-4 mb-4 rounded bg-red-50 text-red-700 text-sm">{error}</div>}
+      {resolveErr && <div role="alert" className="p-4 mb-4 rounded bg-red-50 text-red-700 text-sm">{resolveErr}
+        <button onClick={() => setResolveErr(null)} className="ml-3 underline text-xs">Dismiss</button>
+      </div>}
 
       {items.length === 0 ? (
         <div className="p-8 rounded-xl bg-green-50 text-green-800 text-sm text-center">
@@ -128,7 +152,7 @@ export default function ObservationPage() {
                 {ai?.rationale && (
                   <div className="text-xs italic text-gray-600 mb-2">
                     “{ai.rationale}”
-                    {ai.model && <span className="text-[10px] text-gray-400 ml-2">— {ai.model}</span>}
+                    {ai.model && <span className="text-xs text-gray-400 ml-2">— {ai.model}</span>}
                   </div>
                 )}
 
@@ -141,7 +165,7 @@ export default function ObservationPage() {
                   </details>
                 )}
 
-                <p className="text-[10px] text-gray-400 mt-2">
+                <p className="text-xs text-gray-400 mt-2">
                   Flagged {new Date(o.flaggedAt).toLocaleString()}
                 </p>
               </div>

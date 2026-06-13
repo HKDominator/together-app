@@ -34,6 +34,7 @@ Bugs, security, accessibility, and token/theming violations. Ordered by severity
 | CR-03  | critique                  | fe · account                              | `revoke()` / `revokeOthers()` have no error handling — silent failures on security actions                                                  | High     | High         |
 | CR-04  | critique                  | fe · login                                | PIN step has no back button — user is trapped                                                                                               | High     | High         |
 | CR-05  | critique                  | fe · pulse                                | "Gold challenge" internal jargon + em dash in user-facing copy                                                                              | High     | High         |
+| FD-13  | critique                  | fe · chat                                 | Chat bubbles re-color (approved spec): mine = `cm` fill + `sl` text, theirs = white + gray-100 border; crimson reserved for send button     | Med      | High         |
 | SEC-08 | security                  | be · global                               | No rate limiting anywhere (password / OTP / reset / refresh brute force)                                                                    | High     | Medium       |
 | SEC-09 | security                  | be · auth                                 | Access + refresh tokens returned in response body (XSS-exposable; partially defeats httpOnly)                                               | Med      | Medium       |
 | SEC-10 | security                  | be · auth                                 | Refresh tokens never rotated; 7-day TTL; no reuse detection                                                                                 | Med      | Medium       |
@@ -64,6 +65,7 @@ Bugs, security, accessibility, and token/theming violations. Ordered by severity
 | CR-11  | critique, audit           | fe · tasks                                | Overdue description `text-gray-400` on `bg-red-50` ≈2.1:1 (WCAG AA)                                                                         | High     | Medium       |
 | CR-12  | critique, audit           | fe · tasks                                | List rows are `<div onClick>` (not button/anchor) — not keyboard-accessible                                                                 | High     | Medium       |
 | CR-13  | critique                  | fe · tasks                                | `handleSubmit`/`handleEdit` swallow errors to `console.error` — no user feedback on failure                                                 | High     | Medium       |
+| FD-14  | critique                  | fe · tasks/global                         | Eyebrow pattern removal (approved spec): label-scale uppercase only on table column headers + form labels; removed everywhere else         | Med      | Medium       |
 | SEC-13 | security                  | be · auth                                 | JWT verified without algorithm pinning (`algorithms: ['HS256']`)                                                                            | Med      | Low          |
 | SEC-14 | security                  | be · auth                                 | Login timing enables email enumeration (bcrypt skipped when user missing)                                                                   | Med      | Low          |
 | SEC-15 | security                  | be · auth/logging                         | Client-controlled `X-Forwarded-For` trusted for session/log IP                                                                              | Med      | Low          |
@@ -99,7 +101,7 @@ Bugs, security, accessibility, and token/theming violations. Ordered by severity
 
 ### Feature/identity decisions
 
-Product calls — what to build, remove, rename, or restructure. These need a decision before they become work. Ordered by severity (mapped from the critique's P-level).
+Product calls — what to build, remove, rename, or restructure. **All rows are decided as of 2026-06-10** — locked decisions are ADR-backed ([docs/adr/](docs/adr/)); the rest were approved as defaults in the veto pass (zero vetoes), recorded under "Scoped features + fixes (Phase 2)" below. FD-13 and FD-14 turned out to be mechanical token/markup work once decided and were moved into the Fixes table above. Ordered by severity (mapped from the critique's P-level).
 
 | ID     | source   | surface               | decision                                                                                                                     | conf. | severity     |
 | ------ | -------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ----- | ------------ |
@@ -111,13 +113,11 @@ Product calls — what to build, remove, rename, or restructure. These need a de
 | FD-07  | critique | fe · login            | Add step progress to the 3-step login flow                                                                                   | Med   | High         |
 | FD-08  | critique | fe · register/auth    | Replace the empty rose-amber gradient auth panels with brand-committed content                                               | High  | High         |
 | FD-09  | critique | fe · register         | Remove SaaS copy ("No credit card needed"); name the product premise in the heading                                          | High  | High         |
-| FD-13  | critique | fe · chat             | Re-color chat bubbles (`bg-red-600` → calm token) per the One Crimson Rule                                                   | Med   | High         |
 | FD-15  | critique | fe · admin/logs       | Add search / filter / sort to the logs page                                                                                  | Med   | High         |
 | FD-16  | critique | fe · pulse            | Decide what Pulse is; replace the dead-end placeholder with a real interim state                                             | High  | High         |
 | FD-10  | critique | fe · register         | Move the Security PIN field into a collapsed "advanced" section with plain-language copy                                     | Med   | Medium       |
 | FD-11  | critique | fe · auth             | Standardize the auth layout (split vs centered) across login/register/forgot/reset                                           | Med   | Medium       |
 | FD-12  | critique | fe · chat             | Rename "Workspace chat" and replace enterprise "Workspace" copy/breadcrumbs with relationship-centric copy                   | Med   | Medium       |
-| FD-14  | critique | fe · tasks/global     | Drop the uppercase eyebrow-on-every-section pattern (reserve for table headers)                                              | Med   | Medium       |
 | FD-02  | critique | fe · account          | Add an `/account` index page (currently 404s) + reserve profile/security settings (IA)                                       | Med   | Medium       |
 | FD-17  | critique | fe · account          | Decide account IA: profile edit, in-app password change, partner connection                                                  | Med   | Medium       |
 | SEC-18 | security | be · tasks/comments   | Decide the tenancy boundary: authorization is permission-based, not ownership-scoped (fine for one couple, not multi-tenant) | High  | Info         |
@@ -540,6 +540,110 @@ this file (rows tagged `source=critique`).
 
 ## Scoped features + fixes (Phase 2)
 
+> Phase 2 is decision + sequencing only. No build in this phase except the security track, which runs separately: SEC-01–07 are fixed on `hotfix/security-phase1`; SEC-08–17 follow the remediation order in the security section above and stay on the security track.
+
+### Locked decisions (made with the product owner)
+
+| ID            | decision                                                                                                                                                                                                                                                          | status                  |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| FD-03         | **Remove** the Contribution Ranking leaderboard outright. No replacement ranking, medals, or per-person score of any kind (PRODUCT.md anti-gamification).                                                                                                         | **Locked** → ADR-0001   |
+| FD-04         | Replace the banned hero-metric stat cards with a **shared-progress view**: a 2-person-aware summary framed as "what we moved together", never as a comparison between partners.                                                                                   | **Locked** → ADR-0001   |
+| FD-05 + FD-06 | **Signature build.** Dual-presence (real partner online/viewing state, replacing the stubbed always-offline dot) plus the mine/theirs identity layer on tasks and comments. These two ship together — presence without identity (or vice versa) is half a feature. | **Locked** → ADR-0002   |
+| FD-16         | **Pulse = Couple Pulse.** Per-partner mood/energy check-in → **Sync Score**, a shared mood reading (explicitly *not* a grade, streak, or target) → one suggested shared activity. Generation reuses the existing local Ollama client (`logging/ai/ollama.client.ts`) with graceful degradation when Ollama is unavailable. | **Locked** → ADR-0004   |
+| SEC-18        | **Single-tenant is deliberate.** One couple per deployment; authorization stays permission-based, not ownership-scoped. Multi-tenancy requires a new ADR before any work in that direction.                                                                       | **Locked** → ADR-0003   |
+
+### Approved decisions (veto pass complete 2026-06-10 — zero vetoes)
+
+The remaining FD rows, approved as proposed by the product owner. These are now binding for the build; reopening one means a new decision entry (and an ADR if contested). FD-13 and FD-14 resolved into mechanical token/markup work and were moved to the **Fixes** table at the top of this file.
+
+| ID            | approved decision                                                                                                                                                                                                               |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| FD-01 + FD-02 | Sidebar footer user menu (avatar + name → Account, Sign out) + an `/account` index page linking profile / security / sessions. Kills the 404 and the unreachable-surface IA gap.                                                |
+| FD-17         | Account IA: profile (display name, avatar color), security (in-app password change, PIN change, session list). **Partner connection/invite flow deferred** — the couple is seeded, single-tenant (SEC-18); an invite flow is a later ADR. |
+| FD-07         | Step indicator on login ("Step 2 of 3 · code from your email"); step count adapts if PIN is optional (FD-10).                                                                                                                   |
+| FD-08 + FD-11 | One shared `AuthLayout` across login/register/forgot/reset: split layout at `lg+` with a brand panel (crimson heart + product premise copy, no gradient), collapsing to a centered card on mobile.                              |
+| FD-09         | Register heading names the premise (e.g. "One shared space for the two of you"); all SaaS copy ("No credit card needed") removed.                                                                                               |
+| FD-10         | PIN moves to a collapsed optional section on register with plain-language copy ("Add an extra check at sign-in"), mono input per DESIGN.md.                                                                                     |
+| FD-12         | Chat header becomes the partner's name + presence dot (it is a 1:1 conversation, so the header is the person, like any messenger). All "Workspace" copy/breadcrumbs replaced with relationship-centric language ("Our space").  |
+| FD-15         | Admin logs get text search, filter by user/action/date range, sortable columns, server-side pagination. Plain table is fine — admin-only surface.                                                                               |
+
+### Fix sequencing (waves)
+
+Order is dependency-driven: tokens unblock the visual sweep, the identity wire unblocks the signature features. Every backlog ID is slotted; nothing is dropped.
+
+**Wave 0 — security track (separate, in flight).** SEC-01–07 done on `hotfix/security-phase1`. **Security hotfix (2026-06-10/11, on `refactor/together_app_v2_1`):** **SEC-08** (rate limiting — ThrottlerModule added, ThrottlerGuard on auth endpoints) and **SEC-13** (JWT algorithm pinning — `algorithms:['HS256']` on all `verify()` calls) both addressed during the Wave 1/2 sprint. Two additional unplanned findings also fixed: `UsersController` missing `@UseGuards(AuthGuard)` (user entity including password hashes leaked to unauthenticated callers); `StatsController` missing `@UseGuards(AuthGuard)` (task statistics leaked unauthenticated). SEC-09–12, SEC-14–17 pending.
+
+**Wave 1 — foundations ✓ DONE (2026-06-10).** All items committed on `refactor/together_app_v2_1`.
+- `globals.css` batch ✓: **AUD-02** token block (auto-resolved **AUD-01** focus rings — no separate fix needed, as planned), **AUD-05** Arial→Geist, **AUD-09** global reduced-motion, **AUD-13** easing, **AUD-14** dark-mode block removed.
+- Identity wire ✓: **BUG-02, BUG-03, BUG-17, BUG-18, BUG-19** — all five resolved by threading the authenticated user from AuthContext/JWT into task/comment creation and "mine" checks, one root fix as planned.
+- **BUG-32** ✓ `graphql()` credentials:`'include'` added.
+
+**Wave 2 — mechanical token/markup sweep ✓ DONE (2026-06-11).** All items committed on `refactor/together_app_v2_1`.
+- Color migration ✓: **AUD-03** (inline `#C0392B` hex → `bg-cr`/`var(--color-cr)` token classes), **AUD-04** (banned cream `rgba(232,213,183,…)` → white-alpha), **AUD-15** (stale `#2C3E50` and typo `#1A2533` → `bg-sl`), **FD-13** (chat bubbles: mine=`bg-cm text-sl`, theirs=`border-gray-100`; crimson kept on Send button only), **FD-14** (`uppercase tracking-widest` removed from nav section labels; table column headers and form labels kept per spec; _note: two marketing eyebrow instances on landing page intentionally exempt_).
+- Markup/a11y ✓: **AUD-06** (`<h3>` → `<h1>` on all four auth pages; `<h3>` → `<h2>` on four stats section cards), **AUD-07** (nested admin `<Link>` hierarchy flattened to three sibling links), **AUD-08** (`role="img"` + `aria-label` on presence dots; `aria-label` on chat close, task edit/delete, comment edit/delete; _note: sessions-page Revoke per-session name deferred to Wave 3 — button text "Revoke" is not icon-only_), **AUD-11** (all `fontSize: 8/9` and `text-[9px]/text-[10px]` raised to `12`/`text-xs`), **CR-06** (priority emoji `🔴🟡🟢` → shape symbols `▲ High / ■ Medium / ▼ Low`), **CR-11** (overdue description text conditionally `text-red-700`), **CR-12** (task rows → `role="row"` + `tabIndex={0}` + `onKeyDown` Enter/Space + `focus-visible:ring-cr`; full `<button>` invalid because rows contain nested action buttons).
+
+**Wave 3 — correctness fixes ✓ DONE (2026-06-11).** All items committed on `refactor/together_app_v2_1`.
+- Backend logic ✓: **BUG-01** chat timestamps, **BUG-04/05** due-date validation, **BUG-06** stats math, **BUG-07** role-system unification, **BUG-08** setState locking, **BUG-11** admin delete, **BUG-37** session metadata; long tail **BUG-09, BUG-10, BUG-12, BUG-13, BUG-15, BUG-16**.
+- Frontend error handling/UX ✓: **CR-02** device labels, **CR-03/CR-09/CR-13** surfaced errors, **CR-04** PIN back button, **CR-08** styled confirm, **CR-10** poll control, **BUG-29, BUG-30, BUG-31, BUG-34, BUG-36**.
+- Offline/realtime ✓: **BUG-20** (tempId remap on drain), **BUG-21** (drain validation error surfaced), **BUG-22** (mid-drain refetch scope), **BUG-23** (per-op localStorage keys), **BUG-24** (own-mutation dedup), **BUG-25** (REPLACE_ID idempotent), **BUG-26** (reconnect resync), **BUG-27** (polling fallback), **BUG-28** (ChatPanel disconnected guard), **BUG-33** (realtime comments — backend emits + frontend subscribes), **BUG-35** (debounced server-side search).
+
+**Wave 4 — signature feature build (identity) ✓ DONE (2026-06-12).** All 8 steps committed on `refactor/together_app_v2_1`. Test suite: **171 FE vitest / 111 BE jest green.**
+
+- **Step 1 ✓** (`e9357a9`) — `withCredentials: true` on both sockets, `attachAuthReconnect` on tasks socket (token refresh → reconnect loop).
+- **Step 2 ✓** (`ed576c4`) — Backend `PresenceService` + `TasksGateway` hooks: `presence:state` snapshot on join, online/offline/viewing events, 5 s offline grace (`PRESENCE_OFFLINE_GRACE_MS`).
+- **Step 3 ✓** (`e5a9810`) — `PresenceContext`: rides tasks socket (ADR-0002), seeds from `presence:state` on every connect/reconnect, patches with deltas, re-emits own viewing focus on reconnect. `Sidebar.tsx`: self always online, partner dot = `onlineUserIds.has(id)`, `motion-safe:animate-pulse` (reduced-motion solid color). `app/(app)/layout.tsx`: `<PresenceProvider>` wraps app shell.
+- **Step 4 ✓** (`20db610`) — Viewing presence UI: `TaskDetailContent` extracted for testability; detail page + edit modal emit `setViewingTask` on mount/unmount (BUG-25 `tmp_*` guard); co-presence line on detail; partner initials bubble on task row; `usePresence` returns safe empty default outside provider.
+- **Step 5 ✓** (`0460469`) — FD-06 completion moment: `TasksContext` `lastCompletion` state; warm amber flash (`ring-2 ring-amber-400`) on row chip + detail chip when server-echoed `task:updated` transitions not-done→done with partner online; `motion-safe:` prefix on both chips; `useRef` mirrors for stale-closure avoidance in WS handler.
+- **Step 6 ✓** (`d283a80`) — **FD-05** identity sweep: "You" vs partner name in task rows, task detail "Assigned to", activity section, and comments author header; `CommentsThread` shows "You" for own comments.
+- **Step 7 ✓** (`2b2ec95`) — **FD-03 + FD-04** statistics rebuild: Contribution Ranking leaderboard deleted; `BarChart` with hardcoded "Ana"/"Dan" legend replaced by "Moved Together" shared weekly chart + two summary lines (CR-01 fabricated KPIs + CR-07 legend names eliminated); tabular view Score column removed.
+- **Step 8 ✓** (`a7e630c`) — **FD-01 + FD-02** account entry: sidebar footer (current-user avatar + name + ⚙ `/account` link + ⏻ sign-out); `/account/page.tsx` index with Sessions link + Profile/Security placeholders; kills the 404 and the unreachable-surface IA gap.
+
+*Unplanned fix committed alongside Wave 4 (2026-06-12):* `auth.service.ts` `beginLogin`/`verifyOtp`/`verifyPin` were calling plain `findOne()` on the `User` repo — both `passwordHash` and `securityPinHash` carry `select:false` on the entity, so TypeORM silently omitted them, causing `bcrypt.compare(pw, undefined)` → "data and hash arguments required" crash on every login. Fixed via private `findUserForAuth()` helper using `createQueryBuilder + addSelect`. `auth.service.spec.ts` updated to mock `createQueryBuilder`; 111 BE jest green.
+
+**Wave 5 — surface feature build. FD-16 Couple Pulse + UI cleanup: COMPLETE 2026-06-12.**
+- **FD-16 ✓ COMPLETE** Couple Pulse (replaces the placeholder; kills **CR-05** jargon copy). All 10 steps committed on `refactor/together_app_v2_1`; **196 FE vitest / 192 BE jest green.** Architecture brief approved 2026-06-12 (all 8 open decisions resolved); spec ground truth: [ADR-0004](docs/adr/0004-couple-pulse.md), `.scratch/couple-pulse/PRD.md`, CONTEXT.md glossary.
+  - **Step 1 ✓** (`daa33fc`) — OllamaClient extracted from `logging/ai/` to shared `src/ai/ai.module.ts`; LogsModule imports AiModule.
+  - **Step 2 ✓** (`2e133c8` red, `c226f2f` green) — `src/pulse/reading.ts`: frozen mood (`bright/steady/tender/heavy`) × energy (`charged/steady/low`) vocab; six Readings; pure symmetric first-match rule table, exhaustively tested over all 144 ordered pairs. Carrying/quiet boundary: both moods ∈ {tender, heavy} AND ≥1 heavy.
+  - **Step 3 ✓** (`91ef2f6` red, `7604036` green) — `src/pulse/canon.ts`: 48 product-owner-approved entries (8/Reading; draft + approval in `.scratch/couple-pulse/canon-draft.md`); `pickCanonEntry()` deterministic over (Pulse Day, Reading).
+  - **Step 4 ✓** (`38f89f1` red, `637a743` green) — `pulse_check_ins` (unique userId+pulseDay) + `pulse_days` entities via `synchronize`; `PulseService`: PULSE_TIMEZONE Pulse Day (DST-tested), today-only upsert w/ unique-race recovery, four-state view, Reveal-after-you-share enforced in the service layer, provenance never serialized.
+  - **Step 5 ✓** (`ea42483` red, `b971837` green) — `PulseSuggestionService`: completing check-in awaits bounded generation (8s; fast-fail ≤2s when Ollama down), anomaly-style JSON-only prompt, defensive validation (candidate-traced, ≤200 chars, no digits), all nine degradation rows → deterministic Canon pick via `INSERT … ON CONFLICT DO NOTHING` + read-back; Canon-only lazy repair on reads.
+  - **Step 6 ✓** (`89800e2` red, `2a73e7e` green) — `PulseController` + `UpsertCheckInDto`: `GET /pulse/today`, `PUT /pulse/today/check-in`, `@UseGuards(AuthGuard)` at class level (matches StatsController; no PermissionsGuard), `@IsIn(MOODS)` / `@IsIn(ENERGIES)` validation. 188 BE jest green.
+  - **Step 7 ✓** (`f7a2e71`) — `stats.firewall.spec.ts`: ADR-0004 CI tripwire; source-text assertions that StatsModule/StatsService carry no pulse import and TasksStats has no pulse-derived fields. Spec-only commit; boundary was already clean.
+  - **Step 8 ✓** (`3d795d0` red, `938b6ee` green) — `lib/pulse.ts`: `PulseTodayView` type, `pulseApi.getToday()` / `upsertCheckIn()` with 401-retry via `refreshOnce`, `derivePulseView()` pure function (empty / partner-first / solo / complete). 180 FE vitest green.
+  - **Step 9 ✓** (`da14f13` red, `a6fdf27` green) — `app/(app)/pulse/page.tsx`: four-state Couple Pulse UI. (a) check-in form; (b) form + partner-fact, content strictly hidden; (c) editable form + "Just you so far today."; (d) Reading leads, suggestion beneath. Brand tokens, `motion-safe:` on every transition, no "Score", no numerals. 196 FE vitest green.
+  - **Step 10 ✓** — Copy pass: no em dashes in any user-facing Pulse copy (all clear). REDESIGN-PLAN.md and wave5-status.md updated. FD-16 / CR-05 100% done. Playwright e2e deliberately skipped (runner-mismatch, approved 2026-06-12).
+- **FD-07 ✓ COMPLETE** (`024371f` red, `bdb569b` green) — `StepProgress` nav in login page: 3 accessible `<li>` steps with `aria-current="step"`, tracks password→OTP→PIN transitions. No field-name collision in aria-labels.
+- **FD-10 ✓ COMPLETE** (`cc3fa24` red, `9195dec` green) — Security PIN collapsed into an "Advanced" toggle on register page. Starts hidden; plain-language copy when expanded; no "3FA" jargon visible.
+- **FD-11 ✓ COMPLETE** (`5dfc12a` red, `a3fdea4` green) — `forgot-password` + `reset-password` pages adopt the same `grid grid-cols-1 md:grid-cols-2` split layout as login/register. `data-testid="auth-panel"` on the decorative column.
+- **FD-12 ✓ COMPLETE** (`4516e1d` red, `b2ab7c9` green) — ChatPanel header: `role="banner"`, shows partner name from `useTasks()` instead of "Workspace chat". Sidebar section label changed from "Workspace" to "Together".
+- **AUD-10 + AUD-12 ✓ COMPLETE** (`1614198`) — Close button and Send button have `min-h-[44px]`; chat panel uses `w-[calc(100vw-3rem)] sm:w-80 max-w-sm`. Applied alongside FD-12; spec-only commit validates.
+- **FD-17 ✓ COMPLETE** (`3032145` red, `b9bf8b3` green) — Account index: Profile and Security cards are now `<Link>` elements to `/account/profile` and `/account/security` (no more "coming soon" placeholders). Stub pages created for both routes. **223 FE vitest / 192 BE jest green.**
+- Auth surface remaining: **FD-08, FD-09** (brand panels + SaaS copy) — NOT in this sweep.
+- **FD-15** logs tooling — explicitly deferred to last.
+
+### Stretch — only after Wave 4 ships
+
+> **Guardrail:** no new features get built until dual-presence (FD-05/FD-06) is functional and shipped.
+
 ## Decisions / ADRs
 
+ADRs live in [docs/adr/](docs/adr/):
+
+- [ADR-0001](docs/adr/0001-remove-leaderboard-shared-progress.md) — Remove the contribution leaderboard; statistics become a shared-progress view (FD-03, FD-04)
+- [ADR-0002](docs/adr/0002-dual-presence-identity-signature.md) — Dual-presence + mine/theirs identity layer are the signature build (FD-05, FD-06)
+- [ADR-0003](docs/adr/0003-single-tenant-by-design.md) — Single-tenant, permission-based authorization is deliberate (SEC-18)
+- [ADR-0004](docs/adr/0004-couple-pulse.md) — Pulse is Couple Pulse: check-in → Sync Score → suggested activity, via local Ollama (FD-16)
+
+The "Approved decisions" table above was approved as proposed on 2026-06-10 (zero vetoes). Those rows are deliberately not ADR-backed — they were uncontested defaults; promote one to an ADR only if it is later reopened and actually debated.
+
 ## Handoff notes
+
+- **Phase 1** (review) is complete: backlog table above + [CRITIQUES-RAW.md](CRITIQUES-RAW.md).
+- **Security track** runs independently on `hotfix/security-phase1` (SEC-01–07 fixed; two pre-existing test failures are unrelated; SEC-07 has a seed residual to finish).
+- **Phase 2** (this section) is complete: all decisions locked or approved (veto pass 2026-06-10, zero vetoes). Next action: build starts at **Wave 1** — `globals.css` tokens, the identity wire, and BUG-32 are the first three changes.
+- Wave 1's identity wire is the single highest-leverage code change outside security: five findings collapse into one fix and it unblocks the signature features.
+- **Phase 3 complete (2026-06-11):** Waves 1–3 fully committed on `refactor/together_app_v2_1`; test suite green (107 FE / 97 BE).
+- **Phase 4 complete (2026-06-12):** Wave 4 all 8 steps committed on `refactor/together_app_v2_1`; **171 FE vitest / 111 BE jest green. Wave 4 is 100% done. Next: Wave 5.**
+- **Unplanned BE fix (2026-06-12):** `bcrypt.compare(pw, undefined)` crash on login fixed in `auth.service.ts` — `passwordHash`/`securityPinHash` are `select:false`; `findUserForAuth` private helper now uses `createQueryBuilder + addSelect`. Changes are uncommitted as of handoff; commit them before starting Wave 5 code.
+- **Wave 5 FD-16 complete (2026-06-12):** Couple Pulse all 10 steps committed on `refactor/together_app_v2_1`; **196 FE vitest / 192 BE jest green. FD-16 / CR-05 100% done.** Remaining Wave 5 items: auth surface (FD-07/08/09/10/11), chat rename (FD-12), logs tooling (FD-15), account IA (FD-17), responsive/touch (AUD-10/AUD-12).
+- **Wave 5 UI cleanup complete (2026-06-12):** FD-07, FD-10, FD-11, FD-12, AUD-10, AUD-12, FD-17 all committed on `refactor/together_app_v2_1`; **223 FE vitest / 192 BE jest green.** Remaining: FD-08/FD-09 (brand auth panels, out of scope this sweep); FD-15 logs tooling (deferred to last step).

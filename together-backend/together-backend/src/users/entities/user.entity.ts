@@ -18,11 +18,11 @@ export class User {
   @Index({ unique: true })
   @Column({ type: 'varchar', length: 255 }) email!: string
 
-  @Column({ type: 'varchar', length: 255, default: '' }) passwordHash!: string
+  @Column({ type: 'varchar', length: 255, default: '', select: false }) passwordHash!: string
 
   // Security PIN — bcrypt-hashed 4-6 digit code that is the 3rd factor.
   // Empty string => 3FA not configured for this user (still 2FA-protected).
-  @Column({ type: 'varchar', length: 255, default: '' }) securityPinHash!: string
+  @Column({ type: 'varchar', length: 255, default: '', select: false }) securityPinHash!: string
 
   // Feature flags. Default: 2FA on (email OTP), 3FA off (PIN optional).
   @Column({ type: 'boolean', default: true })  twoFactorEnabled!: boolean
@@ -30,7 +30,9 @@ export class User {
 
   @Column({ type: 'varchar', length: 100 }) name!: string
 
-  @Column({ type: 'varchar', length: 20 })  role!: UserRole
+  /** Which person in the couple this is ('owner'|'partner'). Distinct from
+   *  the RBAC `roles` M:M relation — do NOT use this field for authorization. */
+  @Column({ type: 'varchar', length: 20, name: 'role' }) coupleRole!: UserRole
   @Column({ type: 'varchar', length: 7 })   avatarColor!: string
   @Column({ type: 'varchar', length: 4 })   initials!: string
 

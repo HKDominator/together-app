@@ -95,23 +95,19 @@ export class AnomalyDetectorService {
     reason: string,
     evidence: Record<string, unknown>,
   ): Promise<void> {
-    const existing = await this.obs.findOne({ where: { userId: user.id, resolved: false } })
-    if (existing) {
-      existing.score    += 1
-      existing.reason    = reason     // keep the most recent reason on top
-      existing.evidence  = { ...(existing.evidence ?? {}), ...evidence }
-      await this.obs.save(existing)
-      return
-    }
-    await this.obs.save(this.obs.create({
-      userId:    user.id,
-      userEmail: user.email,
-      userName:  user.name,
-      reason,
-      score:     1,
-      resolved:  false,
-      evidence,
-    }))
+    await this.obs.query(
+      `INSERT INTO observation_list
+         (id, "userId", "userEmail", "userName", reason, score, resolved, evidence, "flaggedAt", "updatedAt")
+       VALUES (gen_random_uuid(), $1, $2, $3, $4, 1, false, $5::jsonb, NOW(), NOW())
+       ON CONFLICT ("userId")
+       DO UPDATE SET
+         score       = observation_list.score + 1,
+         reason      = EXCLUDED.reason,
+         evidence    = COALESCE(observation_list.evidence, '{}') || EXCLUDED.evidence::jsonb,
+         resolved    = false,
+         "updatedAt" = NOW()`,
+      [user.id, user.email, user.name, reason, JSON.stringify(evidence)],
+    )
   }
 
   // ── Admin queries ────────────────────────────────────────────

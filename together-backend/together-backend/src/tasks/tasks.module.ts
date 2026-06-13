@@ -12,12 +12,14 @@ import { Task } from './entities/task.entity'
 import { UsersModule } from '../users/users.module'
 import { CommentsModule } from '../comments/comments.module'
 import { AuthModule } from '../auth/auth.module'
+import { PresenceModule } from '../presence/presence.module'
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Task]),
     UsersModule,
     AuthModule,
+    PresenceModule,
     forwardRef(() => CommentsModule),
   ],
   controllers: [TasksController, GeneratorController],

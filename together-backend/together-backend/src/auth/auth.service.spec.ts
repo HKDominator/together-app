@@ -14,7 +14,15 @@ import { LoginAttempt } from './entities/login-attempt.entity'
 describe('AuthService (unit)', () => {
   let service: AuthService
 
-  const users    = { findOne: jest.fn(), save: jest.fn(),  create: jest.fn(x => x) }
+  // findUserForAuth() uses createQueryBuilder+addSelect so plain findOne() no
+  // longer loads the select:false hash columns.  Mock the QB chain here.
+  const mockQb = {
+    addSelect:          jest.fn().mockReturnThis(),
+    leftJoinAndSelect:  jest.fn().mockReturnThis(),
+    where:              jest.fn().mockReturnThis(),
+    getOne:             jest.fn(),
+  }
+  const users    = { findOne: jest.fn(), save: jest.fn(), create: jest.fn(x => x), createQueryBuilder: jest.fn(() => mockQb) }
   const roles    = { findOne: jest.fn() }
   const sessions = { save: jest.fn(s => ({ ...s, id: 'sess-1' })), create: jest.fn(x => x), findOne: jest.fn() }
   const attempts = { save: jest.fn(s => ({ ...s, id: 'att-1' })), create: jest.fn(x => x), findOne: jest.fn(), delete: jest.fn() }
@@ -45,13 +53,13 @@ describe('AuthService (unit)', () => {
   })
 
   it('beginLogin rejects unknown email', async () => {
-    users.findOne.mockResolvedValueOnce(null)
+    mockQb.getOne.mockResolvedValueOnce(null)
     await expect(service.beginLogin('x@y.z', 'pw', { ip: '', userAgent: '' }))
       .rejects.toThrow('Invalid credentials')
   })
 
   it('beginLogin rejects bad password', async () => {
-    users.findOne.mockResolvedValueOnce({
+    mockQb.getOne.mockResolvedValueOnce({
       id: 'u1', email: 'x@y.z',
       passwordHash: await bcrypt.hash('rightpass', 4),
       roles: [],
@@ -61,7 +69,7 @@ describe('AuthService (unit)', () => {
   })
 
   it('beginLogin returns OTP stage when 2FA on', async () => {
-    users.findOne.mockResolvedValueOnce({
+    mockQb.getOne.mockResolvedValueOnce({
       id: 'u1', email: 'x@y.z',
       passwordHash: await bcrypt.hash('rightpass', 4),
       twoFactorEnabled: true, threeFactorEnabled: false,
@@ -73,7 +81,7 @@ describe('AuthService (unit)', () => {
   })
 
   it('beginLogin skips OTP when 2FA off', async () => {
-    users.findOne.mockResolvedValueOnce({
+    mockQb.getOne.mockResolvedValueOnce({
       id: 'u1', email: 'x@y.z',
       passwordHash: await bcrypt.hash('rightpass', 4),
       twoFactorEnabled: false, threeFactorEnabled: false,
@@ -99,13 +107,35 @@ describe('AuthService (unit)', () => {
     expect(users.findOne).not.toHaveBeenCalled()   // bailed before checking the PIN
   })
 
+  // BUG-07: register() must set coupleRole (couple-relationship semantics)
+  // separately from the RBAC `roles` relation — both must be populated.
+  // BUG-37: register() must forward the real ip/userAgent to the first session.
+  it('register() sets coupleRole distinct from RBAC roles, and forwards real session meta (BUG-07, BUG-37)', async () => {
+    roles.findOne.mockResolvedValueOnce({ id: 'r1', name: 'user', permissions: [] })
+    users.save.mockImplementationOnce(async (u: any) => ({ ...u, id: 'new-u', sessions: [] }))
+    sessions.save.mockImplementationOnce(async (s: any) => ({ ...s, id: 'sess-1' }))
+
+    await service.register(
+      { email: 'new@test.com', password: 'password1234', name: 'New User' } as any,
+      { ip: '1.2.3.4', userAgent: 'Mozilla/5.0' },
+    )
+
+    const saved = users.save.mock.calls[0][0] as any
+    expect(saved.coupleRole).toBe('partner')      // couple-role (BUG-07)
+    expect(Array.isArray(saved.roles)).toBe(true) // RBAC roles also populated
+
+    const sess = sessions.save.mock.calls[0][0] as any
+    expect(sess.ip).toBe('1.2.3.4')              // BUG-37: real IP, not ''
+    expect(sess.userAgent).toBe('Mozilla/5.0')   // BUG-37: real UA, not ''
+  })
+
   it('verifyPin increments the counter on a wrong PIN (drives toward the cap)', async () => {
     const row = {
       id: 'att-1', userId: 'u1', stage: 'pin',
       attempts: 0, expiresAt: new Date(Date.now() + 60_000),
     }
     attempts.findOne.mockResolvedValueOnce(row)
-    users.findOne.mockResolvedValueOnce({
+    mockQb.getOne.mockResolvedValueOnce({
       id: 'u1', securityPinHash: await bcrypt.hash('1234', 4),
     })
 

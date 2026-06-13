@@ -4,6 +4,7 @@
 import {
   Body, Controller, Get, HttpCode, HttpStatus, NotFoundException, Post, Req, Res, UseGuards,
 } from '@nestjs/common'
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler'
 import type { Request, Response } from 'express'
 import { AuthService } from './auth.service'
 import { LoginDto } from './dto/login.dto'
@@ -44,13 +45,15 @@ export class AuthController {
       password: dto.password,
       name:     dto.name,
       pin:      dto.securityPin,
-    })
+    }, meta(req))
     this.setAuthCookies(res, result.accessToken, result.refreshToken)
     return result
   }
 
   // ── POST /auth/login (step 1: password) ──────────────────────────
   @Post('login')
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @HttpCode(HttpStatus.OK)
   async login(
     @Body() dto: LoginDto,
@@ -66,6 +69,8 @@ export class AuthController {
 
   // ── POST /auth/login/otp (step 2) ────────────────────────────────
   @Post('login/otp')
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @HttpCode(HttpStatus.OK)
   async verifyOtp(
     @Body() dto: VerifyOtpDto,
@@ -81,6 +86,8 @@ export class AuthController {
 
   // ── POST /auth/login/pin (step 3) ────────────────────────────────
   @Post('login/pin')
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @HttpCode(HttpStatus.OK)
   async verifyPin(
     @Body() dto: VerifyPinDto,
