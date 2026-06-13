@@ -7,10 +7,10 @@ import { useAuth } from "@/context/AuthContext";
 import { usePresence } from "@/context/PresenceContext";
 
 const NAV = [
-  { href: "/", icon: "🏠", label: "Landing" },
-  { href: "/tasks", icon: "✅", label: "Tasks" },
-  { href: "/statistics", icon: "📊", label: "Statistics" },
-  { href: "/pulse", icon: "⚡", label: "Pulse" },
+  { href: "/", icon: "", label: "Landing" },
+  { href: "/tasks", icon: "", label: "Tasks" },
+  { href: "/statistics", icon: "", label: "Statistics" },
+  { href: "/pulse", icon: "", label: "Pulse" },
 ];
 
 export default function Sidebar() {
@@ -20,9 +20,7 @@ export default function Sidebar() {
   const { onlineUserIds, isPresenceConnected = true } = usePresence();
 
   return (
-    <aside
-      className="w-60 shrink-0 flex flex-col h-screen sticky top-0 bg-sl"
-    >
+    <aside className="w-60 shrink-0 flex flex-col h-screen sticky top-0 bg-sl">
       {/* Logo */}
       <div className="px-6 py-7 border-b border-white/8 flex items-center gap-3">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -38,9 +36,7 @@ export default function Sidebar() {
 
       {/* Nav */}
       <nav className="flex-1 py-5">
-        <p className="px-6 mb-2 text-xs font-semibold text-white/45">
-          Main
-        </p>
+        <p className="px-6 mb-2 text-xs font-semibold text-white/45">Main</p>
         {NAV.map(({ href, icon, label }) => {
           const active =
             pathname === href || (href !== "/" && pathname.startsWith(href));
@@ -66,11 +62,15 @@ export default function Sidebar() {
               Administration
             </p>
             {[
-              { href: "/admin/users",       icon: "🔐", label: "Users" },
-              { href: "/admin/logs",        icon: "📋", label: "Admin Logs" },
-              { href: "/admin/observation", icon: "🔍", label: "Anomaly Detection" },
+              { href: "/admin/users", icon: "", label: "Users" },
+              { href: "/admin/logs", icon: "", label: "Admin Logs" },
+              {
+                href: "/admin/observation",
+                icon: "",
+                label: "Anomaly Detection",
+              },
             ].map(({ href, icon, label }) => {
-              const active = pathname === href || pathname.startsWith(href)
+              const active = pathname === href || pathname.startsWith(href);
               return (
                 <Link
                   key={href}
@@ -84,7 +84,7 @@ export default function Sidebar() {
                   <span className="text-base w-5 text-center">{icon}</span>
                   {label}
                 </Link>
-              )
+              );
             })}
           </>
         )}
@@ -95,15 +95,14 @@ export default function Sidebar() {
 
       {/* Workspace users */}
       <div className="px-6 py-5 border-t border-white/8">
-        <p className="mb-3 text-xs font-semibold text-white/45">
-          Together
-        </p>
+        <p className="mb-3 text-xs font-semibold text-white/45">Together</p>
         {users.map((u) => {
           // Self is always shown online — you know you're connected.
           // Partner dot: green only when WS is live AND server says they're online.
           // When WS drops, isPresenceConnected is false and stale data is cleared.
-          const isOnline = u.id === currentUser.id
-            || (isPresenceConnected && onlineUserIds.has(u.id))
+          const isOnline =
+            u.id === currentUser.id ||
+            (isPresenceConnected && onlineUserIds.has(u.id));
           return (
             <div key={u.id} className="flex items-center gap-2.5 mb-2.5">
               <div
@@ -116,20 +115,18 @@ export default function Sidebar() {
                 <p className="text-xs font-semibold truncate text-white/85">
                   {u.name}
                 </p>
-                <p className="text-xs capitalize text-white/35">
-                  {u.role}
-                </p>
+                <p className="text-xs capitalize text-white/35">{u.role}</p>
               </div>
               {/* presence-dot-online uses the bespoke 2s ease-in-out presencePulse
                   keyframe defined in globals.css — correct curve per DESIGN.md §5.
                   The global reduced-motion block drops the animation to static. */}
               <span
                 role="img"
-                aria-label={`${u.name} is ${isOnline ? 'online' : 'offline'}`}
-                className={`w-2 h-2 rounded-full ${isOnline ? 'bg-success presence-dot-online' : 'bg-gray-500'}`}
+                aria-label={`${u.name} is ${isOnline ? "online" : "offline"}`}
+                className={`w-2 h-2 rounded-full ${isOnline ? "bg-success presence-dot-online" : "bg-gray-500"}`}
               />
             </div>
-          )
+          );
         })}
       </div>
 
