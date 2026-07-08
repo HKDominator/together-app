@@ -156,9 +156,10 @@ export class AuthService {
       `Your verification code is: ${otp}\nIt expires in 10 minutes.`,
     )
 
-    // In dev mode we echo the OTP back so the test/curl/jmeter flow
-    // doesn't need access to an inbox. Removed in prod by env flag.
-    const devOtp = this.mailer.isDev() ? otp : undefined
+    // Echo the OTP back to the client when there's no real inbox to read it
+    // from — dev mode, or a demo deployment with SHOW_LOGIN_CODE=true. Off by
+    // default in production (see MailerService.shouldEchoLoginCode).
+    const devOtp = this.mailer.shouldEchoLoginCode() ? otp : undefined
 
     return { stage: 'otp', attemptId: attempt.id, expiresIn: OTP_TTL_SEC, devOtp }
   }

@@ -33,7 +33,7 @@ describe('AuthService (unit)', () => {
     verifyRefresh: jest.fn(),
     accessTtl: 900, refreshTtl: 604800,
   } as unknown as JwtUtil
-  const mailer = { send: jest.fn(), peek: jest.fn(), isDev: () => true } as unknown as MailerService
+  const mailer = { send: jest.fn(), peek: jest.fn(), isDev: () => true, shouldEchoLoginCode: () => true } as unknown as MailerService
 
   beforeEach(async () => {
     jest.clearAllMocks()
