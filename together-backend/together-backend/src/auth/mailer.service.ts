@@ -10,15 +10,28 @@ import { ConfigService } from '@nestjs/config'
 export class MailerService {
   private readonly log = new Logger(MailerService.name)
   private readonly devMode: boolean
+  private readonly echoLoginCode: boolean
   private readonly inbox = new Map<string, { subject: string; body: string; at: Date }[]>()
 
   constructor(cfg: ConfigService) {
-    // Fail closed: the dev inbox / code-echo path is OFF unless MAIL_DEV is
-    // explicitly 'true' AND we are not running in production. Production can
-    // never open this oracle even if MAIL_DEV is mis-set (SEC-02).
+    // Fail closed: the dev inbox oracle (peek / GET /auth/dev/inbox) is OFF
+    // unless MAIL_DEV is explicitly 'true' AND we are not running in
+    // production. Production can never open that oracle even if MAIL_DEV is
+    // mis-set (SEC-02).
     const explicitlyEnabled = cfg.get<string>('MAIL_DEV', 'false') === 'true'
     const isProd = cfg.get<string>('NODE_ENV', '') === 'production'
     this.devMode = explicitlyEnabled && !isProd
+
+    // SHOW_LOGIN_CODE: this app ships only a fake mailer, so the sign-in OTP
+    // is never actually delivered — in production it would reach nothing but
+    // the server logs. For demo deployments (Render/Vercel) where a reviewer
+    // has no log access, setting this flag 'true' also returns the code in the
+    // login API response so it can be shown in the browser. This DEFEATS the
+    // second factor and must stay OFF for any real deployment — hence a
+    // dedicated, default-off flag that is NOT gated by NODE_ENV, kept separate
+    // from the prod-locked inbox oracle above.
+    this.echoLoginCode = this.devMode
+      || cfg.get<string>('SHOW_LOGIN_CODE', 'false') === 'true'
   }
 
   async send(to: string, subject: string, body: string): Promise<void> {
@@ -37,4 +50,8 @@ export class MailerService {
   }
 
   isDev(): boolean { return this.devMode }
+
+  // Whether the sign-in OTP may be echoed back in the login API response so
+  // the user can read it in the browser (demo deployments with no real mail).
+  shouldEchoLoginCode(): boolean { return this.echoLoginCode }
 }

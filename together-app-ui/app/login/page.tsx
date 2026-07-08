@@ -151,13 +151,19 @@ export default function LoginPage() {
 
           {step === 'otp' && (
             <form onSubmit={handleOtp} className="flex flex-col gap-4">
-              <p className="text-sm text-gray-600">
-                We sent a 6-digit code to <strong>{email}</strong>.
-              </p>
-              {devOtp && (
-                <div className="p-2 rounded bg-amber-50 text-xs text-amber-800 font-mono">
-                  Dev mode — code is <strong>{devOtp}</strong>
+              {devOtp ? (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+                  <p className="text-sm text-amber-800">
+                    No email is set up for this demo, so your verification code is shown here — type it in below:
+                  </p>
+                  <p className="mt-1.5 text-center font-mono text-3xl font-bold tracking-[0.3em] text-amber-900 select-all">
+                    {devOtp}
+                  </p>
                 </div>
+              ) : (
+                <p className="text-sm text-gray-600">
+                  We sent a 6-digit code to <strong>{email}</strong>.
+                </p>
               )}
               <FormInput label="Verification code" id="otp" name="otp" type="text"
                 value={otp} onChange={(e: ChangeEvent<HTMLInputElement>) => setOtp(e.target.value)}
